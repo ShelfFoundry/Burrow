@@ -1,4 +1,5 @@
 import { onCleanup, onMount } from "solid-js";
+import { clearFrame, initWebGpu, type WebGpuState } from "../gpu/webgpu";
 
 type ViewportProps = {
   onStatusChange: (message: string) => void;
@@ -8,7 +9,23 @@ type ViewportProps = {
 export function Viewport(props: ViewportProps) {
   let canvasRef: HTMLCanvasElement | undefined;
 
-  onMount(() => {
+  let gpuState: WebGpuState | undefined;
+  let animationFrameId = 0;
+  let disposed = false;
+
+  function frame() {
+    if (disposed) {
+      return;
+    }
+
+    if (gpuState) {
+      clearFrame(gpuState);
+    }
+
+    animationFrameId = requestAnimationFrame(frame);
+  }
+
+  onMount(async () => {
     props.onStatusChange("Viewport mounted");
 
     const canvas = canvasRef;
@@ -17,18 +34,22 @@ export function Viewport(props: ViewportProps) {
       return;
     }
 
-    const context = canvas.getContext("webgpu");
+    try {
+      gpuState = await initWebGpu(canvas);
 
-    if (!context) {
-      props.onStatusChange("WebGPU context not available");
-      return;
+      props.onStatusChange(`WebGPU initalized. Format: ${gpuState.format}`);
+
+      animationFrameId = requestAnimationFrame(frame);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown WebGPU error";
+      props.onStatusChange(`WebGPU failed: ${message}`);
     }
 
-    props.onStatusChange("WebGPU context available");
+  });
 
-    onCleanup(() => {
-      props.onStatusChange("Viewport unmounted");
-    });
+  onCleanup(() => {
+    disposed = true;
+    cancelAnimationFrame(animationFrameId);
   });
 
   return (
