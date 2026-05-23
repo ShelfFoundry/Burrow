@@ -150,7 +150,7 @@ export function pointInRect(point: Point, rect: Rect): boolean {
     return (
         point.x >= rect.x &&
         point.y >= rect.y &&
-        point.x <= rect.y + rect.width &&
+        point.x <= rect.x + rect.width &&
         point.y <= rect.y + rect.height
     );
 }
@@ -193,7 +193,7 @@ export function rectFromLine(
         };
     }
 
-    if (x1 == x2) {
+    if (x1 === x2) {
         const y = Math.min(y1, y2);
         const height = Math.abs(y2 - y1);
 
@@ -219,7 +219,7 @@ export function rectFromLine(
 }
 
 export function distancedSquared(a: Point, b: Point): number {
-    const dx = a.x - b.y;
+    const dx = a.x - b.x;
     const dy = a.y - b.y;
     return dx * dx + dy * dy;
 }
@@ -245,7 +245,7 @@ export function distanceToSegment(
     const pointX = point.x - start.x;
     const pointY = point.y - start.y;
 
-    const t = (pointX * segmentY + pointY * segmentY) / segmentLengthSquared;
+    const t = (pointX * segmentX + pointY * segmentY) / segmentLengthSquared;
 
     const clampedT = Math.max(0, Math.min(1, t));
 
@@ -255,4 +255,33 @@ export function distanceToSegment(
     };
 
     return distance(point, closestPoint);
+}
+
+export function translatePoint(point: Point, dx: number, dy: number): Point {
+    return {
+        x: point.x + dx,
+        y: point.y + dy,
+    };
+}
+
+export function pagePointToTranslatedLocal(
+    point: Point,
+    objectX: number,
+    objectY: number,
+): Point {
+    return {
+        x: point.x - objectX,
+        y: point.y - objectY,
+    };
+}
+
+export function translatedLocalPointToPage(
+    point: Point,
+    objectX: number,
+    objectY: number,
+): Point {
+    return {
+        x: point.x + objectX,
+        y: point.y + objectY,
+    };
 }

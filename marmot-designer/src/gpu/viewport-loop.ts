@@ -188,7 +188,7 @@ export function createViewportLoop(
                 pointer.inside = true;
                 pointer.isDown = true;
 
-                const screenTolerance = 6;
+                const screenTolerance = 8;
                 const pageTolerance = screenTolerance / transform.zoom;
 
                 const hit = hitTestDocument(document, {

@@ -1,5 +1,5 @@
 import type { EditorDocument, EditorObject, LineObject, ObjectId, RectObject } from "./document"
-import { distanceToSegment, pointInRect, type Point, type Rect } from "./geometry";
+import { distanceToSegment, pagePointToTranslatedLocal, pointInRect, type Point, type Rect } from "./geometry";
 
 export type HitTestResult =
     | { kind: "none" }
@@ -33,16 +33,25 @@ export function hitTestDocument(
 }
 
 function hitTestRectObject(point: Point, object: RectObject): boolean {
-    const rect: Rect = {
-        x: object.x,
-        y: object.y,
+    const localPoint = pagePointToTranslatedLocal(
+        point, object.x, object.y,
+    );
+
+    const localBounds: Rect = {
+        x: 0,
+        y: 0,
         width: object.width,
         height: object.height,
     };
-    return pointInRect(point, rect);
+
+    return pointInRect(localPoint, localBounds);
 }
 
 function hitTestObject(point: Point, object: EditorObject, options: HitTestOptions): boolean {
+    const bounds = getObjectPageBounds(object, options);
+    if (!pointInRect(point, bounds)) {
+        return false;
+    }
     switch (object.kind) {
         case "rect":
             return hitTestRectObject(point, object);
@@ -69,4 +78,39 @@ function hitTestLineObject(
     const distance = distanceToSegment(point, lineStart, lineEnd);
     const effectiveTolerance = Math.max(tolerance, object.stroke.width / 2);
     return distance <= effectiveTolerance;
+}
+
+function getRectObjectPageBounds(object: RectObject): Rect {
+    return {
+        x: object.x,
+        y: object.y,
+        width: object.width,
+        height: object.height,
+    };
+}
+
+function getLineObjectPageBounds(object: LineObject, tolerance: number): Rect {
+    const x0 = Math.min(object.x1, object.x2) - tolerance;
+    const y0 = Math.min(object.y1, object.y2) - tolerance;
+    const x1 = Math.max(object.x1, object.x2) + tolerance;
+    const y1 = Math.max(object.y1, object.y2) + tolerance;
+
+    return {
+        x: x0,
+        y: y0,
+        width: x1 - x0,
+        height: y1 - y0,
+    };
+}
+
+function getObjectPageBounds(
+    object: EditorObject,
+    options: HitTestOptions,
+): Rect {
+    switch (object.kind) {
+        case "rect":
+            return getRectObjectPageBounds(object);
+        case "line":
+            return getLineObjectPageBounds(object, options.tolerance);
+    }
 }
