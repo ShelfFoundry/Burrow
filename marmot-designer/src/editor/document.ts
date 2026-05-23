@@ -50,3 +50,7 @@ export type EditorDocument = {
     page: Page,
     objects: EditorObject[];
 };
+
+export type Selection =
+    | { kind: "none" }
+    | { kind: "object", objectId: ObjectId };

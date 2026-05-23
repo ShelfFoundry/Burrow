@@ -1,12 +1,14 @@
 import { onCleanup, onMount } from "solid-js";
 import { initWebGpu } from "../gpu/webgpu";
-import { createViewportLoop, type ViewportLoop, type ViewportPointerEvent, type ViewportPointerEventKind } from "../gpu/viewport-loop";
+import { createViewportLoop, type ViewportLoop, type ViewportPointerEventKind } from "../gpu/viewport-loop";
 import type { EditorDocument } from "../editor/document";
+import type { SelectionSummary } from "../App";
+import { objectToSelectionSummary } from "../editor/selection-summary";
 
 type ViewportProps = {
   document: EditorDocument,
   onStatusChange: (message: string) => void;
-  onSelectionChange: (selection: { kind: "none"; }) => void;
+  onSelectionChange: (selection: SelectionSummary) => void;
 };
 
 export function Viewport(props: ViewportProps) {
@@ -24,7 +26,17 @@ export function Viewport(props: ViewportProps) {
 
     try {
       const gpuState = await initWebGpu(canvas);
-      loop = createViewportLoop(canvas, gpuState, props.document);
+      loop = createViewportLoop(canvas, gpuState, props.document, {
+        onSelectionChanged: (_selection, hit) => {
+          if (hit.kind === "object") {
+            props.onSelectionChange(objectToSelectionSummary(hit.object));
+            props.onStatusChange(`Selected object: ${hit.object.id}: ${hit.object.name}`);
+          } else {
+            props.onSelectionChange({ kind: "none" });
+            props.onStatusChange("No object selected");
+          }
+        }
+      });
       loop.start();
 
       props.onStatusChange(
@@ -87,16 +99,7 @@ export function Viewport(props: ViewportProps) {
           if (!canvas) return;
 
           canvas.setPointerCapture(event.pointerId);
-
-          const viewportEvent = toViewportPointerEvent("pointer_down", canvas, event);
-          loop?.handlePointerEvent(viewportEvent);
-          props.onSelectionChange({ kind: "none" });
-
-          const pointer = loop?.getPointerState();
-
-          if (pointer) {
-            props.onStatusChange(`Screen: ${pointer.x.toFixed(0)}, ${pointer.y.toFixed(0)} | Page: ${pointer.pageX.toFixed(1)}, ${pointer.pageY.toFixed(1)}`);
-          }
+          loop?.handlePointerEvent(toViewportPointerEvent("pointer_down", canvas, event));
         }}
         onPointerMove={(event) => {
           const canvas = canvasRef;

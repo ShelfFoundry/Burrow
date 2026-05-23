@@ -2,6 +2,7 @@ import type { EditorDocument } from "../editor/document";
 import { computeInitialViewport, screenToPage, type PagePlacement, type Point, type ViewportTransform } from "../editor/geometry";
 import { createPageRenderer, type PageRenderer } from "./page-renderer";
 import { createRectRenderer, type RectRenderer } from "./rect-renderer";
+import type { Selection } from "../editor/document";
 import {
     beginFrame,
     endFrame,
@@ -9,6 +10,7 @@ import {
     type WebGpuState,
 } from "./webgpu";
 import { createObjectRenderer, type ObjectRenderer } from "./object-renderer";
+import { hitTestDocument, type HitTestResult } from "../editor/hit-test";
 
 export type ViewportPointerEventKind =
     | "pointer_down"
@@ -46,6 +48,10 @@ export type PointerState = {
     pointerId: number | null;
 };
 
+export type ViewportLoopCallbacks = {
+    onSelectionChanged?: (selection: Selection, hit: HitTestResult) => void;
+};
+
 export type ViewportLoop = {
     start: () => void;
     stop: () => void;
@@ -60,17 +66,20 @@ export type ViewportLoop = {
     getPagePlacement: () => PagePlacement;
     screenToPagePoint: (point: Point) => Point;
     resetViewToFitPage: () => void;
+    getSelection: () => Selection;
 };
 
 export function createViewportLoop(
     canvas: HTMLCanvasElement,
     gpuState: WebGpuState,
     document: EditorDocument,
+    callbacks: ViewportLoopCallbacks = {},
 ): ViewportLoop {
     let animationFrameId = 0;
     let running = false;
     let dirty = true;
     let renderedFrames = 0;
+    let selection: Selection = { kind: "none" };
 
     const rectRenderer: RectRenderer = createRectRenderer(gpuState);
     const pageRenderer: PageRenderer = createPageRenderer();
@@ -98,6 +107,35 @@ export function createViewportLoop(
         x: 0,
         y: 0,
     };
+
+    function getSelection(): Selection {
+        return selection;
+    }
+
+    function selectionEqual(a: Selection, b: Selection): boolean {
+        if (a.kind !== b.kind) {
+            return false;
+        }
+
+        if (a.kind === "none" && b.kind === "none") {
+            return true;
+        }
+
+        if (a.kind === "object" && b.kind == "object") {
+            return a.objectId === b.objectId;
+        }
+
+        return false;
+    }
+
+    function setSelection(nextSelection: Selection, hit: HitTestResult) {
+        const changed = !selectionEqual(selection, nextSelection);
+        selection = nextSelection;
+        if (changed) {
+            callbacks.onSelectionChanged?.(selection, hit);
+            markDirty();
+        }
+    }
 
     function getTransform(): ViewportTransform {
         return { ...transform };
@@ -149,6 +187,17 @@ export function createViewportLoop(
             case "pointer_down":
                 pointer.inside = true;
                 pointer.isDown = true;
+
+                const hit = hitTestDocument(document, {
+                    x: pointer.pageX,
+                    y: pointer.pageY,
+                });
+
+                if (hit.kind === "object") {
+                    setSelection({ kind: "object", objectId: hit.objectId }, hit);
+                } else {
+                    setSelection({ kind: "none" }, hit);
+                }
                 break;
             case "pointer_move":
                 pointer.inside = true;
@@ -257,5 +306,6 @@ export function createViewportLoop(
         getPagePlacement,
         screenToPagePoint,
         resetViewToFitPage,
+        getSelection,
     };
 }
