@@ -1,5 +1,6 @@
 import { onCleanup, onMount } from "solid-js";
-import { clearFrame, initWebGpu, type WebGpuState } from "../gpu/webgpu";
+import { initWebGpu} from "../gpu/webgpu";
+import { createViewportLoop, type ViewportLoop } from "../gpu/viewport-loop";
 
 type ViewportProps = {
   onStatusChange: (message: string) => void;
@@ -8,22 +9,7 @@ type ViewportProps = {
 
 export function Viewport(props: ViewportProps) {
   let canvasRef: HTMLCanvasElement | undefined;
-
-  let gpuState: WebGpuState | undefined;
-  let animationFrameId = 0;
-  let disposed = false;
-
-  function frame() {
-    if (disposed) {
-      return;
-    }
-
-    if (gpuState) {
-      clearFrame(gpuState);
-    }
-
-    animationFrameId = requestAnimationFrame(frame);
-  }
+  let loop: ViewportLoop | undefined;
 
   onMount(async () => {
     props.onStatusChange("Viewport mounted");
@@ -35,11 +21,11 @@ export function Viewport(props: ViewportProps) {
     }
 
     try {
-      gpuState = await initWebGpu(canvas);
+      const gpuState = await initWebGpu(canvas);
+      loop = createViewportLoop(canvas, gpuState);
+      loop.start();
 
-      props.onStatusChange(`WebGPU initalized. Format: ${gpuState.format}`);
-
-      animationFrameId = requestAnimationFrame(frame);
+      props.onStatusChange(`WebGPU loop running. Format: ${gpuState.format}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown WebGPU error";
       props.onStatusChange(`WebGPU failed: ${message}`);
@@ -48,18 +34,55 @@ export function Viewport(props: ViewportProps) {
   });
 
   onCleanup(() => {
-    disposed = true;
-    cancelAnimationFrame(animationFrameId);
+    loop?.stop();
   });
+
+  function getCanvasPoint(canvas: HTMLCanvasElement, event: PointerEvent): { x: number; y: number } {
+    const rect = canvas.getBoundingClientRect();
+
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+  }
 
   return (
     <section class="viewport-panel">
       <canvas
         ref={canvasRef}
         class="viewport-canvas"
-        onPointerDown={() => {
+        onPointerDown={(event) => {
+          const canvas = canvasRef;
+          if (!canvas) return;
+
+          canvas.setPointerCapture(event.pointerId);
+          const point = getCanvasPoint(canvas, event);
+
+          loop?.pointerMove(point.x, point.y, event.buttons);
           props.onSelectionChange({ kind: "none" });
           props.onStatusChange("Canvas clicked");
+        }}
+        onPointerMove={(event) => {
+          const canvas = canvasRef;
+          if (!canvas) return;
+
+          const point = getCanvasPoint(canvas, event);
+          loop?.pointerMove(point.x, point.y, event.buttons);
+        }}
+        onPointerUp={(event) => {
+          const canvas = canvasRef;
+          if (!canvas) return;
+
+          const point = getCanvasPoint(canvas, event);
+          loop?.pointerMove(point.x, point.y, event.buttons);
+          props.onStatusChange(`Pointer up: ${point.x.toFixed(0)}, ${point.y.toFixed(0)}`);
+
+          if (canvas.hasPointerCapture(event.pointerId)) {
+            canvas.releasePointerCapture(event.pointerId);
+          }
+        }}
+        onPointerLeave={()=>{
+          loop?.pointerLeave();
         }}
       />
     </section>

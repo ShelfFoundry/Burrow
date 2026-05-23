@@ -63,3 +63,18 @@ export function clearFrame(state: WebGpuState): void {
 
     state.device.queue.submit([commandBuffer]);
 }
+
+export function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement): boolean {
+    const devicePixelRatio = window.devicePixelRatio || 1;
+
+    const displayWidth = Math.max(1, Math.floor(canvas.clientWidth * devicePixelRatio));
+    const displayHeight = Math.max(1, Math.floor(canvas.clientHeight * devicePixelRatio));
+
+    const needsResize = canvas.width !== displayWidth || canvas.height !== displayHeight;
+    if (needsResize) {
+        canvas.width = displayWidth;
+        canvas.height = displayHeight;
+    }
+
+    return needsResize;
+}
