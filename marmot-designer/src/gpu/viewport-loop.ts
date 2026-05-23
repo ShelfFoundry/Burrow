@@ -1,7 +1,11 @@
 import type { EditorDocument } from "../editor/document";
 import { computeInitialViewport, screenToPage, type PagePlacement, type Point, type ViewportTransform } from "../editor/geometry";
+import { createPageRenderer, type PageRenderer } from "./page-renderer";
+import { createRectRenderer, type RectRenderer } from "./rect-renderer";
 import {
+    beginFrame,
     clearFrame,
+    endFrame,
     resizeCanvasToDisplaySize,
     type WebGpuState,
 } from "./webgpu";
@@ -39,6 +43,8 @@ export function createViewportLoop(
     let running = false;
     let dirty = true;
     let renderedFrames = 0;
+    const rectRenderer: RectRenderer = createRectRenderer(gpuState);
+    const pageRenderer: PageRenderer = createPageRenderer();
 
     const pointer: PointerState = {
         x: 0,
@@ -73,8 +79,8 @@ export function createViewportLoop(
     function resetViewToFitPage() {
         const result = computeInitialViewport(
             {
-                width: canvas.clientWidth,
-                height: canvas.clientHeight,
+                width: canvas.width,
+                height: canvas.height,
             },
             {
                 width: document.page.width,
@@ -119,7 +125,18 @@ export function createViewportLoop(
         }
 
         if (dirty) {
-            clearFrame(gpuState);
+            const frameState = beginFrame(gpuState);
+
+            const pageRects = pageRenderer.buildRects({
+                document,
+                transform,
+                pagePlacement,
+            });
+
+            rectRenderer.render(frameState.pass, pageRects, canvas.width, canvas.height);
+
+            endFrame(gpuState, frameState);
+
             renderedFrames += 1;
             dirty = false;
         }
@@ -134,7 +151,10 @@ export function createViewportLoop(
 
         running = true;
         dirty = true;
+
+        resizeCanvasToDisplaySize(canvas);
         resetViewToFitPage();
+
         animationFrameId = requestAnimationFrame(frame);
     }
 

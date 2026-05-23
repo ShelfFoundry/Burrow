@@ -5,6 +5,12 @@ export type WebGpuState = {
     format: GPUTextureFormat;
 };
 
+export type FrameState = {
+    encoder: GPUCommandEncoder;
+    pass: GPURenderPassEncoder;
+}
+
+
 export async function initWebGpu(canvas: HTMLCanvasElement): Promise<WebGpuState> {
     if (!navigator.gpu) {
         throw new Error("WebGPU is not available in this browser");
@@ -36,6 +42,41 @@ export async function initWebGpu(canvas: HTMLCanvasElement): Promise<WebGpuState
         context,
         format,
     };
+}
+
+export function beginFrame(state: WebGpuState): FrameState {
+    const textureView = state.context.getCurrentTexture().createView();
+    const encoder = state.device.createCommandEncoder();
+
+    const pass = encoder.beginRenderPass({
+        colorAttachments: [
+            {
+                view: textureView,
+                clearValue: {
+                    r: 0.16,
+                    g: 0.17,
+                    b: 0.18,
+                    a: 1.0,
+                },
+                loadOp: "clear",
+                storeOp: "store",
+            },
+        ],
+    });
+
+    return {
+        encoder,
+        pass,
+    };
+}
+
+export function endFrame(
+    state: WebGpuState,
+    frame: FrameState,
+): void {
+    frame.pass.end();
+    const commandBuffer = frame.encoder.finish();
+    state.device.queue.submit([commandBuffer]);
 }
 
 export function clearFrame(state: WebGpuState): void {

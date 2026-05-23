@@ -44,9 +44,15 @@ export function Viewport(props: ViewportProps) {
   function getCanvasPoint(canvas: HTMLCanvasElement, event: PointerEvent): { x: number; y: number } {
     const rect = canvas.getBoundingClientRect();
 
+    const cssX = event.clientX - rect.left;
+    const cssY = event.clientY - rect.top;
+
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
     return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
+      x: cssX * scaleX,
+      y: cssY * scaleY,
     };
   }
 
