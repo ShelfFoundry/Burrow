@@ -1,8 +1,10 @@
 import { onCleanup, onMount } from "solid-js";
-import { initWebGpu} from "../gpu/webgpu";
+import { initWebGpu } from "../gpu/webgpu";
 import { createViewportLoop, type ViewportLoop } from "../gpu/viewport-loop";
+import type { EditorDocument } from "../editor/document";
 
 type ViewportProps = {
+  document: EditorDocument,
   onStatusChange: (message: string) => void;
   onSelectionChange: (selection: { kind: "none"; }) => void;
 };
@@ -25,7 +27,9 @@ export function Viewport(props: ViewportProps) {
       loop = createViewportLoop(canvas, gpuState);
       loop.start();
 
-      props.onStatusChange(`WebGPU loop running. Format: ${gpuState.format}`);
+      props.onStatusChange(
+        `WebGPU loop running. Page: ${props.document.page.width}×${props.document.page.height}. Objects: ${props.document.objects.length}. Format: ${gpuState.format}`,
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown WebGPU error";
       props.onStatusChange(`WebGPU failed: ${message}`);
@@ -81,7 +85,7 @@ export function Viewport(props: ViewportProps) {
             canvas.releasePointerCapture(event.pointerId);
           }
         }}
-        onPointerLeave={()=>{
+        onPointerLeave={() => {
           loop?.pointerLeave();
         }}
       />

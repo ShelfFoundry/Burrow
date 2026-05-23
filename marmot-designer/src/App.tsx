@@ -3,6 +3,8 @@ import { Toolbar } from './components/Toolbar';
 import { Viewport } from './components/Viewport';
 import { Inspector } from './components/Inspector';
 import { StatusBar } from './components/StatusBar';
+import { createSampleDocument } from './editor/sample';
+import type { EditorDocument } from './editor/document';
 
 export type SelectionSummary =
   | {
@@ -19,6 +21,8 @@ export type SelectionSummary =
   };
 
 export default function App() {
+  const [document] = createSignal<EditorDocument>(createSampleDocument());
+
   const [selection, setSelection] = createSignal<SelectionSummary>({
     kind: "none",
   });
@@ -34,11 +38,12 @@ export default function App() {
 
       <main class="main-layout">
         <Viewport
+          document={document()}
           onStatusChange={setStatus}
           onSelectionChange={setSelection}
         />
 
-        <Inspector selection={selection()} />
+        <Inspector document={document()} selection={selection()} />
       </main>
 
       <StatusBar message={status()} />

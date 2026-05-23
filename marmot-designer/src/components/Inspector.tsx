@@ -1,8 +1,10 @@
 import type { SelectionSummary } from "../App";
 import { WasmStatus } from './WasmStatus';
+import type { EditorDocument } from "../editor/document";
 
 type InspectorProps = {
   selection: SelectionSummary;
+  document: EditorDocument;
 };
 
 export function Inspector(props: InspectorProps) {
@@ -45,7 +47,22 @@ export function Inspector(props: InspectorProps) {
           </div>
         </div>
       )}
+
       <hr class="panel-divider" />
+      <div class="document-summary">
+        <h3>Document</h3>
+        <div class="property-row">
+          <span>Page</span>
+          <strong>
+            {props.document.page.width}×{props.document.page.height}
+          </strong>
+        </div>
+        <div class="property-row">
+          <span>Objects</span>
+          <strong>{props.document.objects.length}</strong>
+        </div>
+      </div>
+
       <WasmStatus />
     </aside>
   );

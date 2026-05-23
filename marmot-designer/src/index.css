@@ -144,3 +144,12 @@ button:hover {
   color: #9aa0a6;
   line-height: 1.4;
 }
+
+.document-summary h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.document-summary {
+  margin-bottom: 16px;
+}
