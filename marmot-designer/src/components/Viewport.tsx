@@ -1,6 +1,6 @@
 import { onCleanup, onMount } from "solid-js";
 import { initWebGpu } from "../gpu/webgpu";
-import { createViewportLoop, type ViewportLoop } from "../gpu/viewport-loop";
+import { createViewportLoop, type ViewportLoop, type ViewportPointerEvent, type ViewportPointerEventKind } from "../gpu/viewport-loop";
 import type { EditorDocument } from "../editor/document";
 
 type ViewportProps = {
@@ -41,6 +41,27 @@ export function Viewport(props: ViewportProps) {
     loop?.stop();
   });
 
+  function toViewportPointerEvent(
+    kind: ViewportPointerEventKind,
+    canvas: HTMLCanvasElement,
+    event: PointerEvent,
+  ) {
+    const point = getCanvasPoint(canvas, event);
+
+    return {
+      kind,
+      pointerId: event.pointerId,
+      x: point.x,
+      y: point.y,
+      buttons: event.buttons,
+      button: event.button,
+      shiftKey: event.shiftKey,
+      altKey: event.altKey,
+      ctrlKey: event.ctrlKey,
+      metaKey: event.metaKey,
+    };
+  }
+
   function getCanvasPoint(canvas: HTMLCanvasElement, event: PointerEvent): { x: number; y: number } {
     const rect = canvas.getBoundingClientRect();
 
@@ -66,42 +87,48 @@ export function Viewport(props: ViewportProps) {
           if (!canvas) return;
 
           canvas.setPointerCapture(event.pointerId);
-          const point = getCanvasPoint(canvas, event);
-          const pagePoint = loop?.screenToPagePoint(point);
 
-          loop?.pointerMove(point.x, point.y, event.buttons);
+          const viewportEvent = toViewportPointerEvent("pointer_down", canvas, event);
+          loop?.handlePointerEvent(viewportEvent);
           props.onSelectionChange({ kind: "none" });
 
-          if (pagePoint) {
-            props.onStatusChange(`Screen: ${point.x.toFixed(0)}, ${point.y.toFixed(0)} | Page: ${pagePoint.x.toFixed(1)}, ${pagePoint.y.toFixed(1)}`);
+          const pointer = loop?.getPointerState();
+
+          if (pointer) {
+            props.onStatusChange(`Screen: ${pointer.x.toFixed(0)}, ${pointer.y.toFixed(0)} | Page: ${pointer.pageX.toFixed(1)}, ${pointer.pageY.toFixed(1)}`);
           }
         }}
         onPointerMove={(event) => {
           const canvas = canvasRef;
           if (!canvas) return;
 
-          const point = getCanvasPoint(canvas, event);
-          loop?.pointerMove(point.x, point.y, event.buttons);
+          loop?.handlePointerEvent(toViewportPointerEvent("pointer_move", canvas, event));
         }}
         onPointerUp={(event) => {
           const canvas = canvasRef;
           if (!canvas) return;
 
-          const point = getCanvasPoint(canvas, event);
-          const pagePoint = loop?.screenToPagePoint(point);
+          loop?.handlePointerEvent(toViewportPointerEvent("pointer_up", canvas, event));
 
-          loop?.pointerMove(point.x, point.y, event.buttons);
+          const pointer = loop?.getPointerState();
 
+          if (pointer) {
+            props.onStatusChange(`Screen: ${pointer.x.toFixed(0)}, ${pointer.y.toFixed(0)} | Page: ${pointer.pageX.toFixed(1)}, ${pointer.pageY.toFixed(1)}`);
+          }
+        }}
+        onPointerCancel={(event) => {
+          const canvas = canvasRef;
+          if (!canvas) return;
+          loop?.handlePointerEvent(toViewportPointerEvent("pointer_cancel", canvas, event));
           if (canvas.hasPointerCapture(event.pointerId)) {
             canvas.releasePointerCapture(event.pointerId);
           }
-
-          if (pagePoint) {
-            props.onStatusChange(`Screen: ${point.x.toFixed(0)}, ${point.y.toFixed(0)} | Page: ${pagePoint.x.toFixed(1)}, ${pagePoint.y.toFixed(1)}`);
-          }
+          props.onStatusChange("Pointer canceled");
         }}
-        onPointerLeave={() => {
-          loop?.pointerLeave();
+        onPointerLeave={(event) => {
+          const canvas = canvasRef;
+          if (!canvas) return;
+          loop?.handlePointerEvent(toViewportPointerEvent("pointer_leave", canvas, event));
         }}
       />
     </section>

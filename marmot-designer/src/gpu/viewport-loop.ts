@@ -10,11 +10,40 @@ import {
 } from "./webgpu";
 import { createObjectRenderer, type ObjectRenderer } from "./object-renderer";
 
+export type ViewportPointerEventKind =
+    | "pointer_down"
+    | "pointer_move"
+    | "pointer_up"
+    | "pointer_cancel"
+    | "pointer_leave";
+
+export type ViewportPointerEvent = {
+    kind: ViewportPointerEventKind,
+    pointerId: number,
+
+    // NOTE: canvas-local x/y in backing-buffer pixels
+    x: number,
+    y: number,
+
+    buttons: number;
+    button: number;
+
+    shiftKey: boolean;
+    altKey: boolean;
+    ctrlKey: boolean;
+    metaKey: boolean;
+};
+
 export type PointerState = {
     x: number,
     y: number,
+    pageX: number;
+    pageY: number;
     inside: boolean,
+    isDown: boolean;
     buttons: number,
+    button: number;
+    pointerId: number | null;
 };
 
 export type ViewportLoop = {
@@ -23,8 +52,7 @@ export type ViewportLoop = {
     markDirty: () => void;
     isRunning: () => boolean;
 
-    pointerMove: (x: number, y: number, buttons: number) => void;
-    pointerLeave: () => void;
+    handlePointerEvent: (event: ViewportPointerEvent) => void;
     getPointerState: () => PointerState;
 
     getRenderedFrames: () => number;
@@ -51,8 +79,13 @@ export function createViewportLoop(
     const pointer: PointerState = {
         x: 0,
         y: 0,
+        pageX: 0,
+        pageY: 0,
         inside: false,
-        buttons: 0
+        isDown: false,
+        buttons: 0,
+        button: -1,
+        pointerId: null,
     };
 
     let transform: ViewportTransform = {
@@ -98,17 +131,46 @@ export function createViewportLoop(
         dirty = true;
     }
 
-    function pointerMove(x: number, y: number, buttons: number) {
-        pointer.x = x;
-        pointer.y = y;
-        pointer.buttons = buttons;
-        pointer.inside = true;
-        markDirty();
-    }
+    function handlePointerEvent(event: ViewportPointerEvent) {
+        const pagePoint = screenToPagePoint({
+            x: event.x,
+            y: event.y,
+        });
 
-    function pointerLeave() {
-        pointer.inside = false;
-        pointer.buttons = 0;
+        pointer.x = event.x;
+        pointer.y = event.y;
+        pointer.pageX = pagePoint.x;
+        pointer.pageY = pagePoint.y;
+        pointer.buttons = event.buttons;
+        pointer.button = event.button;
+        pointer.pointerId = event.pointerId;
+
+        switch (event.kind) {
+            case "pointer_down":
+                pointer.inside = true;
+                pointer.isDown = true;
+                break;
+            case "pointer_move":
+                pointer.inside = true;
+                pointer.isDown = event.buttons !== 0;
+                break;
+            case "pointer_up":
+                pointer.inside = true;
+                pointer.isDown = false;
+                break;
+            case "pointer_leave":
+                pointer.inside = false;
+                pointer.isDown = event.buttons !== 0;
+                break;
+            case "pointer_cancel":
+                pointer.inside = false;
+                pointer.isDown = false;
+                pointer.buttons = 0;
+                pointer.button = -1;
+                pointer.pointerId = null;
+                break;
+        }
+
         markDirty();
     }
 
@@ -188,8 +250,7 @@ export function createViewportLoop(
         stop,
         markDirty,
         isRunning,
-        pointerMove,
-        pointerLeave,
+        handlePointerEvent,
         getPointerState,
         getRenderedFrames,
         getTransform,
