@@ -1,3 +1,5 @@
+import type { EditorDocument } from "../editor/document";
+import { computeInitialViewport, screenToPage, type PagePlacement, type Point, type ViewportTransform } from "../editor/geometry";
 import {
     clearFrame,
     resizeCanvasToDisplaySize,
@@ -21,12 +23,17 @@ export type ViewportLoop = {
     pointerLeave: () => void;
     getPointerState: () => PointerState;
 
-    getRenderedFrames: ()=>number;
+    getRenderedFrames: () => number;
+    getTransform: () => ViewportTransform;
+    getPagePlacement: () => PagePlacement;
+    screenToPagePoint: (point: Point) => Point;
+    resetViewToFitPage: () => void;
 };
 
 export function createViewportLoop(
     canvas: HTMLCanvasElement,
     gpuState: WebGpuState,
+    document: EditorDocument,
 ): ViewportLoop {
     let animationFrameId = 0;
     let running = false;
@@ -39,6 +46,45 @@ export function createViewportLoop(
         inside: false,
         buttons: 0
     };
+
+    let transform: ViewportTransform = {
+        zoom: 1,
+        panX: 0,
+        panY: 0,
+    };
+
+    let pagePlacement: PagePlacement = {
+        x: 0,
+        y: 0,
+    };
+
+    function getTransform(): ViewportTransform {
+        return { ...transform };
+    }
+
+    function getPagePlacement(): PagePlacement {
+        return { ...pagePlacement };
+    }
+
+    function screenToPagePoint(point: Point): Point {
+        return screenToPage(point, pagePlacement, transform);
+    }
+
+    function resetViewToFitPage() {
+        const result = computeInitialViewport(
+            {
+                width: canvas.clientWidth,
+                height: canvas.clientHeight,
+            },
+            {
+                width: document.page.width,
+                height: document.page.height,
+            }
+        );
+        transform = result.transform;
+        pagePlacement = result.pagePlacement;
+        markDirty();
+    }
 
     function markDirty() {
         dirty = true;
@@ -88,6 +134,7 @@ export function createViewportLoop(
 
         running = true;
         dirty = true;
+        resetViewToFitPage();
         animationFrameId = requestAnimationFrame(frame);
     }
 
@@ -117,5 +164,9 @@ export function createViewportLoop(
         pointerLeave,
         getPointerState,
         getRenderedFrames,
+        getTransform,
+        getPagePlacement,
+        screenToPagePoint,
+        resetViewToFitPage,
     };
 }
