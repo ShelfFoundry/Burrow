@@ -188,10 +188,13 @@ export function createViewportLoop(
                 pointer.inside = true;
                 pointer.isDown = true;
 
+                const screenTolerance = 6;
+                const pageTolerance = screenTolerance / transform.zoom;
+
                 const hit = hitTestDocument(document, {
                     x: pointer.pageX,
                     y: pointer.pageY,
-                });
+                }, { tolerance: pageTolerance });
 
                 if (hit.kind === "object") {
                     setSelection({ kind: "object", objectId: hit.objectId }, hit);

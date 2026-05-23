@@ -217,3 +217,42 @@ export function rectFromLine(
         height: Math.max(height, thickness),
     };
 }
+
+export function distancedSquared(a: Point, b: Point): number {
+    const dx = a.x - b.y;
+    const dy = a.y - b.y;
+    return dx * dx + dy * dy;
+}
+
+export function distance(a: Point, b: Point): number {
+    return Math.sqrt(distancedSquared(a, b));
+}
+
+export function distanceToSegment(
+    point: Point,
+    start: Point,
+    end: Point,
+): number {
+    const segmentX = end.x - start.x;
+    const segmentY = end.y - start.y;
+
+    const segmentLengthSquared = segmentX * segmentX + segmentY * segmentY;
+
+    if (segmentLengthSquared === 0) {
+        return distance(point, start);
+    }
+
+    const pointX = point.x - start.x;
+    const pointY = point.y - start.y;
+
+    const t = (pointX * segmentY + pointY * segmentY) / segmentLengthSquared;
+
+    const clampedT = Math.max(0, Math.min(1, t));
+
+    const closestPoint: Point = {
+        x: start.x + clampedT * segmentX,
+        y: start.y + clampedT * segmentY,
+    };
+
+    return distance(point, closestPoint);
+}
