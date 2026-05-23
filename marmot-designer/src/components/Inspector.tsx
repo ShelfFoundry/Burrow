@@ -1,4 +1,5 @@
 import type { SelectionSummary } from "../App";
+import { WasmStatus } from './WasmStatus';
 
 type InspectorProps = {
   selection: SelectionSummary;
@@ -44,6 +45,8 @@ export function Inspector(props: InspectorProps) {
           </div>
         </div>
       )}
+      <hr class="panel-divider" />
+      <WasmStatus />
     </aside>
   );
 }

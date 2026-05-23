@@ -132,3 +132,15 @@ button:hover {
   color: #9aa0a6;
   font-size: 12px;
 }
+
+.panel-divider {
+  border: 0;
+  border-top: 1px solid #3c4043;
+  margin: 16px 0;
+}
+
+.wasm-status {
+  font-size: 12px;
+  color: #9aa0a6;
+  line-height: 1.4;
+}
