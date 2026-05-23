@@ -4,11 +4,11 @@ import { createPageRenderer, type PageRenderer } from "./page-renderer";
 import { createRectRenderer, type RectRenderer } from "./rect-renderer";
 import {
     beginFrame,
-    clearFrame,
     endFrame,
     resizeCanvasToDisplaySize,
     type WebGpuState,
 } from "./webgpu";
+import { createObjectRenderer, type ObjectRenderer } from "./object-renderer";
 
 export type PointerState = {
     x: number,
@@ -43,8 +43,10 @@ export function createViewportLoop(
     let running = false;
     let dirty = true;
     let renderedFrames = 0;
+
     const rectRenderer: RectRenderer = createRectRenderer(gpuState);
     const pageRenderer: PageRenderer = createPageRenderer();
+    const objectRenderer: ObjectRenderer = createObjectRenderer();
 
     const pointer: PointerState = {
         x: 0,
@@ -133,7 +135,13 @@ export function createViewportLoop(
                 pagePlacement,
             });
 
-            rectRenderer.render(frameState.pass, pageRects, canvas.width, canvas.height);
+            const objectRects = objectRenderer.buildRects({
+                document,
+                transform,
+                pagePlacement,
+            });
+
+            rectRenderer.render(frameState.pass, [...pageRects, ...objectRects], canvas.width, canvas.height);
 
             endFrame(gpuState, frameState);
 

@@ -163,3 +163,57 @@ export function pointInPage(point: Point, pageSize: Size): boolean {
         point.y <= pageSize.height
     );
 }
+
+export function normalizeRect(rect: Rect): Rect {
+    const x = Math.min(rect.x, rect.x + rect.width);
+    const y = Math.min(rect.y, rect.y + rect.height);
+    const width = Math.abs(rect.width);
+    const height = Math.abs(rect.height);
+    return { x, y, width, height };
+}
+
+export function rectFromLine(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    thickness: number,
+): Rect {
+    const half = thickness / 2;
+
+    if (y1 === y2) {
+        const x = Math.min(x1, x2);
+        const width = Math.abs(x2 - x1);
+
+        return {
+            x,
+            y: y1 - half,
+            width,
+            height: thickness,
+        };
+    }
+
+    if (x1 == x2) {
+        const y = Math.min(y1, y2);
+        const height = Math.abs(y2 - y1);
+
+        return {
+            x: x1 - half,
+            y,
+            width: thickness,
+            height,
+        };
+    }
+
+    const x = Math.min(x1, x2);
+    const y = Math.min(y1, y2);
+    const width = Math.abs(x2 - x1);
+    const height = Math.abs(y2 - y1);
+
+    return {
+        x,
+        y,
+        width: Math.max(width, thickness),
+        height: Math.max(height, thickness),
+    };
+}
