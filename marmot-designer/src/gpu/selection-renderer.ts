@@ -6,6 +6,7 @@ import type {
 } from "../editor/geometry";
 import { pageRectToScreen } from "../editor/geometry";
 import type { GpuRect } from "./rect-renderer";
+import { getResizeHandlesForScreenRect, squareRectFromCenter } from "../editor/handles";
 
 const SELECTION_COLOR: Rgba = {
     r: 0.2,
@@ -13,8 +14,16 @@ const SELECTION_COLOR: Rgba = {
     b: 1.0,
     a: 1.0,
 };
-
 const SELECTION_OUTLINE_WIDTH = 2;
+const HANDLE_SIZE = 8;
+const HANDLE_FILL_COLOR: Rgba = {
+    r: 1,
+    g: 1,
+    b: 1,
+    a: 1,
+};
+const HANDLE_STROKE_COLOR = SELECTION_COLOR;
+const HANDLE_STROKE_WIDTH = 2;
 
 export type SelectionRenderInput = {
     selection: Selection;
@@ -40,11 +49,13 @@ export function createSelectionRenderer(): SelectionRenderer {
             input.pagePlacement,
             input.transform,
         );
-        return buildScreenStrokeRects(
+        const outlineRects = buildScreenStrokeRects(
             screenBounds,
             SELECTION_OUTLINE_WIDTH,
             SELECTION_COLOR,
         );
+        const handleRects = buildHandleRects(screenBounds);
+        return [...outlineRects, ...handleRects];
     }
 
     return {
@@ -100,4 +111,29 @@ function buildScreenStrokeRects(
             color,
         },
     ];
+}
+
+function buildHandleRects(screenBounds: Rect): GpuRect[] {
+    const handles = getResizeHandlesForScreenRect(screenBounds);
+    const rects: GpuRect[] = [];
+
+    for (const handle of handles) {
+        const outer = squareRectFromCenter(handle.x, handle.y, HANDLE_SIZE);
+        const inner = squareRectFromCenter(
+            handle.x,
+            handle.y,
+            Math.max(1, HANDLE_SIZE - HANDLE_STROKE_WIDTH * 2),
+        );
+        rects.push(
+            {
+                rect: outer,
+                color: HANDLE_STROKE_COLOR,
+            },
+            {
+                rect: inner,
+                color: HANDLE_FILL_COLOR,
+            }
+        );
+    }
+    return rects;
 }
