@@ -15,7 +15,7 @@ import { findObjectById, getSelectedObject, getSelectedObjectPageBounds, selecti
 import { createSelectionRenderer, type SelectionRenderer } from "./selection-renderer";
 import type { InteractionHit } from "../editor/interaction-hit";
 import { hitTestResizeHandles, RESIZE_HANDLE_SIZE } from "../editor/handles";
-import { createIdleDragState, createMoveDragState, createResizeDragState, updateDragCurrentPoint, type DragState } from "../editor/drag-state";
+import { applyMoveDrag, createIdleDragState, createMoveDragState, createResizeDragState, updateDragCurrentPoint, type DragState } from "../editor/drag-state";
 
 export type ViewportPointerEventKind =
     | "pointer_down"
@@ -306,6 +306,10 @@ export function createViewportLoop(
                         x: pointer.pageX,
                         y: pointer.pageY,
                     });
+                    if (dragState.kind === "move") {
+                        applyMoveDrag(document, dragState);
+                        notifySelectionChangedFromCurrentSelection();
+                    }
                     markDirty();
                 }
                 break;
@@ -332,6 +336,26 @@ export function createViewportLoop(
         }
 
         markDirty();
+    }
+
+    function notifySelectionChangedFromCurrentSelection() {
+        if (selection.kind === "none") {
+            callbacks.onSelectionChanged?.(selection, { kind: "none" });
+            return;
+        }
+        const object = findObjectById(document, selection.objectId);
+        if (!object) {
+            callbacks.onSelectionChanged?.({ kind: "none" }, { kind: "none" });
+            return;
+        }
+        callbacks.onSelectionChanged?.(
+            selection,
+            {
+                kind: "object",
+                objectId: object.id,
+                object,
+            },
+        );
     }
 
     function getPointerState(): PointerState {
