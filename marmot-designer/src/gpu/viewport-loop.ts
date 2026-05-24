@@ -11,10 +11,11 @@ import {
 } from "./webgpu";
 import { createObjectRenderer, type ObjectRenderer } from "./object-renderer";
 import { hitTestDocument, type HitTestResult } from "../editor/hit-test";
-import { getSelectedObject, getSelectedObjectPageBounds, selectionsEqual } from "../editor/selection";
+import { findObjectById, getSelectedObject, getSelectedObjectPageBounds, selectionsEqual } from "../editor/selection";
 import { createSelectionRenderer, type SelectionRenderer } from "./selection-renderer";
 import type { InteractionHit } from "../editor/interaction-hit";
 import { hitTestResizeHandles, RESIZE_HANDLE_SIZE } from "../editor/handles";
+import { createIdleDragState, createMoveDragState, createResizeDragState, updateDragCurrentPoint, type DragState } from "../editor/drag-state";
 
 export type ViewportPointerEventKind =
     | "pointer_down"
@@ -75,6 +76,8 @@ export type ViewportLoop = {
     getSelection: () => Selection;
     getSelectedObject: () => EditorObject | undefined;
     getSelectedObjectPageBounds: () => Rect | undefined;
+
+    getDragState: () => DragState;
 };
 
 export function createViewportLoop(
@@ -87,7 +90,9 @@ export function createViewportLoop(
     let running = false;
     let dirty = true;
     let renderedFrames = 0;
+
     let selection: Selection = { kind: "none" };
+    let dragState: DragState = createIdleDragState();
 
     const rectRenderer: RectRenderer = createRectRenderer(gpuState);
     const pageRenderer: PageRenderer = createPageRenderer();
@@ -116,6 +121,10 @@ export function createViewportLoop(
         x: 0,
         y: 0,
     };
+
+    function getDragState(): DragState {
+        return dragState;
+    }
 
     function getSelection(): Selection {
         return selection;
@@ -246,6 +255,18 @@ export function createViewportLoop(
                 );
                 switch (interactionHit.kind) {
                     case "resize_handle":
+                        const object = findObjectById(document, interactionHit.objectId);
+                        if (object) {
+                            dragState = createResizeDragState(
+                                object,
+                                interactionHit.handleId,
+                                {
+                                    x: pointer.pageX,
+                                    y: pointer.pageY,
+                                }
+                            );
+                        }
+
                         callbacks.onInteractionHit?.(interactionHit);
                         markDirty();
                         break;
@@ -261,9 +282,17 @@ export function createViewportLoop(
                                 object: interactionHit.object,
                             }
                         );
+                        dragState = createMoveDragState(
+                            interactionHit.object,
+                            {
+                                x: pointer.pageX,
+                                y: pointer.pageY,
+                            },
+                        );
                         callbacks.onInteractionHit?.(interactionHit);
                         break;
                     case "none":
+                        dragState = createIdleDragState();
                         setSelection({ kind: "none" }, { kind: "none" });
                         callbacks.onInteractionHit?.(interactionHit);
                         break;
@@ -272,10 +301,21 @@ export function createViewportLoop(
             case "pointer_move":
                 pointer.inside = true;
                 pointer.isDown = event.buttons !== 0;
+                if (dragState.kind !== "idle") {
+                    dragState = updateDragCurrentPoint(dragState, {
+                        x: pointer.pageX,
+                        y: pointer.pageY,
+                    });
+                    markDirty();
+                }
                 break;
             case "pointer_up":
                 pointer.inside = true;
                 pointer.isDown = false;
+                if (dragState.kind !== "idle") {
+                    dragState = createIdleDragState();
+                    markDirty();
+                }
                 break;
             case "pointer_leave":
                 pointer.inside = false;
@@ -287,6 +327,7 @@ export function createViewportLoop(
                 pointer.buttons = 0;
                 pointer.button = -1;
                 pointer.pointerId = null;
+                dragState = createIdleDragState();
                 break;
         }
 
@@ -386,5 +427,6 @@ export function createViewportLoop(
         getSelection,
         getSelectedObject: getLoopSelectedObject,
         getSelectedObjectPageBounds: getLoopSelectedObjectPageBounds,
+        getDragState,
     };
 }

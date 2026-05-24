@@ -40,6 +40,9 @@ export function Viewport(props: ViewportProps) {
           if (hit.kind === "resize_handle") {
             props.onStatusChange(`Resize handle ${hit.handleId} on object ${hit.objectId}`);
           }
+          if (hit.kind === "object") {
+            props.onStatusChange(`Start move: object ${hit.objectId}`);
+          }
         },
       });
       loop.start();

@@ -54,3 +54,25 @@ export type EditorDocument = {
 export type Selection =
     | { kind: "none" }
     | { kind: "object", objectId: ObjectId };
+
+export function cloneEditorObject(object: EditorObject): EditorObject {
+    switch (object.kind) {
+        case "rect":
+            return {
+                ...object,
+                fill: object.fill ? { ...object.fill } : null,
+                stroke: object.stroke ? {
+                    color: { ...object.stroke.color },
+                    width: object.stroke.width,
+                } : null,
+            };
+        case "line":
+            return {
+                ...object,
+                stroke: {
+                    color: { ...object.stroke.color },
+                    width: object.stroke.width,
+                }
+            };
+    }
+}
