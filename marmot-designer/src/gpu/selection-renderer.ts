@@ -1,0 +1,103 @@
+import type { Rgba, Selection } from "../editor/document";
+import type {
+    PagePlacement,
+    Rect,
+    ViewportTransform,
+} from "../editor/geometry";
+import { pageRectToScreen } from "../editor/geometry";
+import type { GpuRect } from "./rect-renderer";
+
+const SELECTION_COLOR: Rgba = {
+    r: 0.2,
+    g: 0.55,
+    b: 1.0,
+    a: 1.0,
+};
+
+const SELECTION_OUTLINE_WIDTH = 2;
+
+export type SelectionRenderInput = {
+    selection: Selection;
+    selectedBounds: Rect | undefined;
+    pagePlacement: PagePlacement;
+    transform: ViewportTransform;
+};
+
+export type SelectionRenderer = {
+    buildRects: (input: SelectionRenderInput) => GpuRect[];
+};
+
+export function createSelectionRenderer(): SelectionRenderer {
+    function buildRects(input: SelectionRenderInput): GpuRect[] {
+        if (input.selection.kind === "none") {
+            return [];
+        }
+        if (!input.selectedBounds) {
+            return [];
+        }
+        const screenBounds = pageRectToScreen(
+            input.selectedBounds,
+            input.pagePlacement,
+            input.transform,
+        );
+        return buildScreenStrokeRects(
+            screenBounds,
+            SELECTION_OUTLINE_WIDTH,
+            SELECTION_COLOR,
+        );
+    }
+
+    return {
+        buildRects,
+    };
+}
+
+function buildScreenStrokeRects(
+    rect: Rect,
+    strokeWidth: number,
+    color: Rgba,
+): GpuRect[] {
+    const half = strokeWidth / 2;
+    return [
+        // top
+        {
+            rect: {
+                x: rect.x - half,
+                y: rect.y - half,
+                width: rect.width + strokeWidth,
+                height: strokeWidth,
+            },
+            color,
+        },
+        // right
+        {
+            rect: {
+                x: rect.x + rect.width - half,
+                y: rect.y - half,
+                width: strokeWidth,
+                height: rect.height + strokeWidth,
+            },
+            color,
+        },
+        // bottom
+        {
+            rect: {
+                x: rect.x - half,
+                y: rect.y + rect.height - half,
+                width: rect.width + strokeWidth,
+                height: strokeWidth,
+            },
+            color,
+        },
+        // left
+        {
+            rect: {
+                x: rect.x - half,
+                y: rect.y - half,
+                width: strokeWidth,
+                height: rect.height + strokeWidth,
+            },
+            color,
+        },
+    ];
+}

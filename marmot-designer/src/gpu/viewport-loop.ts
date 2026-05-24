@@ -12,6 +12,7 @@ import {
 import { createObjectRenderer, type ObjectRenderer } from "./object-renderer";
 import { hitTestDocument, type HitTestResult } from "../editor/hit-test";
 import { getSelectedObject, getSelectedObjectPageBounds, selectionsEqual } from "../editor/selection";
+import { createSelectionRenderer, type SelectionRenderer } from "./selection-renderer";
 
 export type ViewportPointerEventKind =
     | "pointer_down"
@@ -88,6 +89,7 @@ export function createViewportLoop(
     const rectRenderer: RectRenderer = createRectRenderer(gpuState);
     const pageRenderer: PageRenderer = createPageRenderer();
     const objectRenderer: ObjectRenderer = createObjectRenderer();
+    const selectionRenderer: SelectionRenderer = createSelectionRenderer();
 
     const pointer: PointerState = {
         x: 0,
@@ -251,7 +253,14 @@ export function createViewportLoop(
                 pagePlacement,
             });
 
-            rectRenderer.render(frameState.pass, [...pageRects, ...objectRects], canvas.width, canvas.height);
+            const selectionRects = selectionRenderer.buildRects({
+                selection,
+                selectedBounds: getLoopSelectedObjectPageBounds(),
+                transform,
+                pagePlacement,
+            });
+
+            rectRenderer.render(frameState.pass, [...pageRects, ...objectRects, ...selectionRects], canvas.width, canvas.height);
 
             endFrame(gpuState, frameState);
 
