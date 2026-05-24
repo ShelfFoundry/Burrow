@@ -1,4 +1,4 @@
-import type { EditorDocument, EditorObject } from "../editor/document";
+import { cloneEditorObject, type EditorDocument, type EditorObject } from "../editor/document";
 import { computeInitialViewport, pageRectToScreen, screenToPage, type PagePlacement, type Point, type Rect, type ViewportTransform } from "../editor/geometry";
 import { createPageRenderer, type PageRenderer } from "./page-renderer";
 import { createRectRenderer, type RectRenderer } from "./rect-renderer";
@@ -11,14 +11,14 @@ import {
 } from "./webgpu";
 import { createObjectRenderer, type ObjectRenderer } from "./object-renderer";
 import { hitTestDocument, type HitTestResult } from "../editor/hit-test";
-import { findObjectById, getSelectedObject, getSelectedObjectPageBounds, selectionsEqual } from "../editor/selection";
+import { findObjectById, getSelectedObject, getSelectedObjectPageBounds, selectionsEqual, type RectEditableProperty } from "../editor/selection";
 import { createSelectionRenderer, type SelectionRenderer } from "./selection-renderer";
 import type { InteractionHit } from "../editor/interaction-hit";
 import { hitTestResizeHandles, RESIZE_HANDLE_SIZE } from "../editor/handles";
 import { applyMoveDrag, applyResizeDrag, createIdleDragState, createMoveDragState, createResizeDragState, updateDragCurrentPoint, type DragState } from "../editor/drag-state";
 import { commitCommand, createEditorHistory, redo, undo, type EditorHistory } from "../editor/history";
-import { createReplaceObjectCommand } from "../editor/edit-command";
-import { replaceObjectById } from "../editor/object-mutations";
+import { createReplaceObjectCommand, createReplaceObjectCommandFromObjects } from "../editor/edit-command";
+import { replaceObjectById, setRectObjectPropery } from "../editor/object-mutations";
 
 export type ViewportPointerEventKind =
     | "pointer_down"
@@ -79,6 +79,10 @@ export type ViewportLoop = {
     getSelection: () => Selection;
     getSelectedObject: () => EditorObject | undefined;
     getSelectedObjectPageBounds: () => Rect | undefined;
+    setSelectedRectProperty: (
+        property: RectEditableProperty,
+        value: number,
+    ) => boolean;
 
     getDragState: () => DragState;
     undo: () => boolean;
@@ -127,6 +131,37 @@ export function createViewportLoop(
         x: 0,
         y: 0,
     };
+
+    function setSelectedRectProperty(
+        property: RectEditableProperty,
+        value: number
+    ): boolean {
+        const selectedObject = getLoopSelectedObject();
+        if (!selectedObject || selectedObject.kind !== "rect") {
+            return false;
+        }
+        const before = cloneEditorObject(selectedObject);
+        if (before.kind !== "rect") {
+            return false;
+        }
+        const after = setRectObjectPropery(before, property, value);
+        const command = createReplaceObjectCommandFromObjects(
+            selectedObject.id,
+            before,
+            after,
+        );
+        if (!command) {
+            return false;
+        }
+        const applied = replaceObjectById(document, selectedObject.id, after);
+        if (!applied) {
+            return false;
+        }
+        commitCommand(history, command);
+        notifySelectionChangedFromCurrentSelection();
+        markDirty();
+        return true;
+    }
 
     function undoLastEdit(): boolean {
         const ok = undo(document, history);
@@ -501,5 +536,6 @@ export function createViewportLoop(
         getDragState,
         undo: undoLastEdit,
         redo: redoLastEdit,
+        setSelectedRectProperty,
     };
 }

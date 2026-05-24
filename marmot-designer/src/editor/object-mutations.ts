@@ -5,6 +5,40 @@ import type {
     RectObject,
 } from "./document";
 import type { ResizeHandleId } from "./handles";
+import type { RectEditableProperty } from "./selection";
+
+export function setRectObjectPropery(
+    object: RectObject,
+    property: RectEditableProperty,
+    value: number,
+    minSize = 8,
+): RectObject {
+    switch (property) {
+        case "x":
+            return {
+                ...object,
+                x: value,
+            };
+
+        case "y":
+            return {
+                ...object,
+                y: value,
+            };
+
+        case "width":
+            return {
+                ...object,
+                width: Math.max(minSize, value),
+            };
+
+        case "height":
+            return {
+                ...object,
+                height: Math.max(minSize, value),
+            };
+    }
+}
 
 export function replaceObjectById(
     document: EditorDocument,

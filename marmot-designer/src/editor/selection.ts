@@ -1,6 +1,8 @@
 import type { EditorDocument, EditorObject, ObjectId, Selection } from "./document";
 import { rectFromLine, type Rect } from "./geometry";
 
+export type RectEditableProperty = "x" | "y" | "width" | "height";
+
 export type SelectedObjectSnapshot =
     | { kind: "none" }
     | {

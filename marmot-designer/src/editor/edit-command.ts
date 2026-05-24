@@ -22,6 +22,22 @@ export type EditCommand =
         after: EditorObject;
     };
 
+export function createReplaceObjectCommandFromObjects(
+    objectId: ObjectId,
+    before: EditorObject,
+    after: EditorObject,
+): EditCommand | undefined {
+    if (editorObjectEqual(before, after)) {
+        return undefined;
+    }
+    return {
+        kind: "replace_object",
+        objectId,
+        before: cloneEditorObject(before),
+        after: cloneEditorObject(after),
+    };
+}
+
 export function applyEditCommand(
     document: EditorDocument,
     command: EditCommand,

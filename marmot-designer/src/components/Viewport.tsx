@@ -2,13 +2,23 @@ import { onCleanup, onMount } from "solid-js";
 import { initWebGpu } from "../gpu/webgpu";
 import { createViewportLoop, type ViewportLoop, type ViewportPointerEventKind } from "../gpu/viewport-loop";
 import type { EditorDocument } from "../editor/document";
-import type { SelectedObjectSnapshot } from "../editor/selection";
+import type { RectEditableProperty, SelectedObjectSnapshot } from "../editor/selection";
 import { selectionToSelectedObjectSnapshot } from "../editor/selection";
+
+export type ViewportController = {
+  setSelectionRectProperty: (
+    property: RectEditableProperty,
+    value: number,
+  ) => boolean;
+  undo: () => boolean;
+  redo: () => boolean;
+};
 
 type ViewportProps = {
   document: EditorDocument,
   onStatusChange: (message: string) => void;
   onSelectedObjectChange: (snapshot: SelectedObjectSnapshot) => void;
+  onControllerReady?: (controller: ViewportController) => void;
 };
 
 export function Viewport(props: ViewportProps) {
@@ -46,6 +56,18 @@ export function Viewport(props: ViewportProps) {
         },
       });
       loop.start();
+
+      props.onControllerReady?.({
+        setSelectionRectProperty: (property, value) => {
+          return loop?.setSelectedRectProperty(property, value) ?? false;
+        },
+        undo: () => {
+          return loop?.undo() ?? false;
+        },
+        redo: () => {
+          return loop?.redo() ?? false;
+        },
+      });
 
       props.onStatusChange(
         `WebGPU loop running. Page: ${props.document.page.width}×${props.document.page.height}. Objects: ${props.document.objects.length}. Format: ${gpuState.format}`,
