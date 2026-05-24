@@ -1,19 +1,65 @@
 import type { EditorDocument, EditorObject, ObjectId, Selection } from "./document";
 import { rectFromLine, type Rect } from "./geometry";
 
-export type SelectionSummary =
+export type SelectedObjectSnapshot =
+    | { kind: "none" }
     | {
-        kind: "none"
-    }
-    | {
-        kind: "object";
+        kind: "rect";
         id: number;
-        objectType: "rect" | "line" | "image" | "text";
+        name: string;
         x: number;
         y: number;
         width: number;
         height: number;
+    }
+    | {
+        kind: "line";
+        id: number;
+        name: string;
+        x1: number;
+        y1: number;
+        x2: number;
+        y2: number;
     };
+
+export function objectToSelectedObjectSnapshot(
+    object: EditorObject,
+): SelectedObjectSnapshot {
+    switch (object.kind) {
+        case "rect":
+            return {
+                kind: "rect",
+                id: object.id,
+                name: object.name,
+                x: object.x,
+                y: object.y,
+                width: object.width,
+                height: object.height,
+            };
+
+        case "line":
+            return {
+                kind: "line",
+                id: object.id,
+                name: object.name,
+                x1: object.x1,
+                y1: object.y1,
+                x2: object.x2,
+                y2: object.y2,
+            };
+    }
+}
+
+export function selectionToSelectedObjectSnapshot(
+    document: EditorDocument,
+    selection: Selection,
+): SelectedObjectSnapshot {
+    const object = getSelectedObject(document, selection);
+    if (!object) {
+        return { kind: "none"};
+    }
+    return objectToSelectedObjectSnapshot(object);
+}
 
 export function selectionsEqual(a: Selection, b: Selection): boolean {
     if (a.kind !== b.kind) {
@@ -73,41 +119,4 @@ export function getSelectedObjectPageBounds(
     const object = getSelectedObject(document, selection);
     if (!object) return undefined;
     return getObjectPageBounds(object);
-}
-
-export function objectToSelectionSummary(object: EditorObject): SelectionSummary {
-    switch (object.kind) {
-        case "rect":
-            return {
-                kind: "object",
-                id: object.id,
-                objectType: object.kind,
-                x: object.x,
-                y: object.y,
-                width: object.width,
-                height: object.height,
-            };
-
-        case "line":
-            return {
-                kind: "object",
-                id: object.id,
-                objectType: object.kind,
-                x: object.x1,
-                y: object.y1,
-                width: object.x2 - object.x1,
-                height: object.y2 - object.y1,
-            };
-    }
-}
-
-export function selectionToSummary(
-    document: EditorDocument,
-    selection: Selection,
-): SelectionSummary {
-    const object = getSelectedObject(document, selection);
-    if (!object) {
-        return { kind: "none" };
-    }
-    return objectToSelectionSummary(object);
 }

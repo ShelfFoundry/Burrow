@@ -5,14 +5,12 @@ import { Inspector } from './components/Inspector';
 import { StatusBar } from './components/StatusBar';
 import { createSampleDocument } from './editor/sample';
 import type { EditorDocument } from './editor/document';
-import type { SelectionSummary } from './editor/selection';
+import type { SelectedObjectSnapshot } from './editor/selection';
 
 export default function App() {
   const [document] = createSignal<EditorDocument>(createSampleDocument());
 
-  const [selection, setSelection] = createSignal<SelectionSummary>({
-    kind: "none",
-  });
+  const [selectedObject, setSelectedObject] = createSignal<SelectedObjectSnapshot>({ kind: "none" });
 
   const [status, setStatus] = createSignal("Ready");
 
@@ -27,10 +25,10 @@ export default function App() {
         <Viewport
           document={document()}
           onStatusChange={setStatus}
-          onSelectionChange={setSelection}
+          onSelectedObjectChange={setSelectedObject}
         />
 
-        <Inspector document={document()} selection={selection()} />
+        <Inspector document={document()} selectedObject={selectedObject()} />
       </main>
 
       <StatusBar message={status()} />
