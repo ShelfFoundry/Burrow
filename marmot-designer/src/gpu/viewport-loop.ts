@@ -16,6 +16,9 @@ import { createSelectionRenderer, type SelectionRenderer } from "./selection-ren
 import type { InteractionHit } from "../editor/interaction-hit";
 import { hitTestResizeHandles, RESIZE_HANDLE_SIZE } from "../editor/handles";
 import { applyMoveDrag, applyResizeDrag, createIdleDragState, createMoveDragState, createResizeDragState, updateDragCurrentPoint, type DragState } from "../editor/drag-state";
+import { commitCommand, createEditorHistory, redo, undo, type EditorHistory } from "../editor/history";
+import { createReplaceObjectCommand } from "../editor/edit-command";
+import { replaceObjectById } from "../editor/object-mutations";
 
 export type ViewportPointerEventKind =
     | "pointer_down"
@@ -78,6 +81,8 @@ export type ViewportLoop = {
     getSelectedObjectPageBounds: () => Rect | undefined;
 
     getDragState: () => DragState;
+    undo: () => boolean;
+    redo: () => boolean;
 };
 
 export function createViewportLoop(
@@ -93,6 +98,7 @@ export function createViewportLoop(
 
     let selection: Selection = { kind: "none" };
     let dragState: DragState = createIdleDragState();
+    const history: EditorHistory = createEditorHistory();
 
     const rectRenderer: RectRenderer = createRectRenderer(gpuState);
     const pageRenderer: PageRenderer = createPageRenderer();
@@ -121,6 +127,24 @@ export function createViewportLoop(
         x: 0,
         y: 0,
     };
+
+    function undoLastEdit(): boolean {
+        const ok = undo(document, history);
+        if (ok) {
+            notifySelectionChangedFromCurrentSelection();
+            markDirty();
+        }
+        return ok;
+    }
+
+    function redoLastEdit(): boolean {
+        const ok = redo(document, history);
+        if (ok) {
+            notifySelectionChangedFromCurrentSelection();
+            markDirty();
+        }
+        return ok;
+    }
 
     function getDragState(): DragState {
         return dragState;
@@ -320,8 +344,15 @@ export function createViewportLoop(
             case "pointer_up":
                 pointer.inside = true;
                 pointer.isDown = false;
-                if (dragState.kind !== "idle") {
+                if (dragState.kind === "move" || dragState.kind === "resize") {
+                    const command = createReplaceObjectCommand(
+                        document,
+                        dragState.objectId,
+                        dragState.originalObject,
+                    );
+                    commitCommand(history, command);
                     dragState = createIdleDragState();
+                    notifySelectionChangedFromCurrentSelection();
                     markDirty();
                 }
                 break;
@@ -335,7 +366,19 @@ export function createViewportLoop(
                 pointer.buttons = 0;
                 pointer.button = -1;
                 pointer.pointerId = null;
-                dragState = createIdleDragState();
+
+                if (dragState.kind === "move" || dragState.kind === "resize") {
+                    replaceObjectById(
+                        document,
+                        dragState.objectId,
+                        dragState.originalObject,
+                    );
+                    dragState = createIdleDragState();
+                    notifySelectionChangedFromCurrentSelection();
+                    markDirty();
+                } else {
+                    dragState = createIdleDragState();
+                }
                 break;
         }
 
@@ -456,5 +499,7 @@ export function createViewportLoop(
         getSelectedObject: getLoopSelectedObject,
         getSelectedObjectPageBounds: getLoopSelectedObjectPageBounds,
         getDragState,
+        undo: undoLastEdit,
+        redo: redoLastEdit,
     };
 }

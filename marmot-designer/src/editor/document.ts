@@ -76,3 +76,10 @@ export function cloneEditorObject(object: EditorObject): EditorObject {
             };
     }
 }
+
+export function editorObjectEqual(
+    a: EditorObject,
+    b: EditorObject
+): boolean {
+    return JSON.stringify(a) === JSON.stringify(b);
+}

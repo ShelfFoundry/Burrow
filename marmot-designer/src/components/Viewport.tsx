@@ -55,6 +55,21 @@ export function Viewport(props: ViewportProps) {
       props.onStatusChange(`WebGPU failed: ${message}`);
     }
 
+    window.addEventListener("keydown", (event) => {
+      const isUndo = (event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "z";
+      const isRedo = (event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "z";
+      if (isUndo) {
+        event.preventDefault();
+        const ok = loop?.undo() ?? false;
+        props.onStatusChange(ok ? "Undo" : "Nothing to undo");
+      }
+      if (isRedo) {
+        event.preventDefault();
+        const ok = loop?.redo() ?? false;
+        props.onStatusChange(ok ? "Redo" : "Nothing to redo");
+      }
+    });
+
   });
 
   onCleanup(() => {
@@ -102,6 +117,7 @@ export function Viewport(props: ViewportProps) {
       <canvas
         ref={canvasRef}
         class="viewport-canvas"
+        tabindex={0}
         onPointerDown={(event) => {
           const canvas = canvasRef;
           if (!canvas) return;
