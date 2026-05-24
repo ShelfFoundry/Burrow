@@ -13,6 +13,7 @@ export default function App() {
   const [selectedObject, setSelectedObject] = createSignal<SelectedObjectSnapshot>({ kind: "none" });
   const [status, setStatus] = createSignal("Ready");
   const [viewportController, setViewportController] = createSignal<ViewportController | undefined>();
+  const [_documentRevision, setDocumentRevision] = createSignal(0);
 
   return (
     <div class="app-shell">
@@ -35,6 +36,7 @@ export default function App() {
           onStatusChange={setStatus}
           onSelectedObjectChange={setSelectedObject}
           onControllerReady={setViewportController}
+          onDocumentRevisionChange={setDocumentRevision}
         />
 
         <Inspector

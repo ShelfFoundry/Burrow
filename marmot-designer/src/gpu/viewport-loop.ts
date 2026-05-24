@@ -11,7 +11,7 @@ import {
 } from "./webgpu";
 import { createObjectRenderer, type ObjectRenderer } from "./object-renderer";
 import { hitTestDocument, type HitTestResult } from "../editor/hit-test";
-import { findObjectById, getSelectedObject, getSelectedObjectPageBounds, selectionsEqual, type RectEditableProperty } from "../editor/selection";
+import { findObjectById, getSelectedObject, getSelectedObjectPageBounds, selectionsEqual, selectionToSelectedObjectSnapshot, type RectEditableProperty, type SelectedObjectSnapshot } from "../editor/selection";
 import { createSelectionRenderer, type SelectionRenderer } from "./selection-renderer";
 import type { InteractionHit } from "../editor/interaction-hit";
 import { hitTestResizeHandles, RESIZE_HANDLE_SIZE } from "../editor/handles";
@@ -59,6 +59,10 @@ export type PointerState = {
 export type ViewportLoopCallbacks = {
     onSelectionChanged?: (selection: Selection, hit: HitTestResult) => void;
     onInteractionHit?: (hit: InteractionHit) => void;
+    onDocumentChanged?: (event: {
+        revision: number,
+        selectedObject: SelectedObjectSnapshot,
+    }) => void;
 };
 
 export type ViewportLoop = {
@@ -83,6 +87,8 @@ export type ViewportLoop = {
         property: RectEditableProperty,
         value: number,
     ) => boolean;
+    getSelectedObjectSnapshot: () => SelectedObjectSnapshot;
+    getDocumentRevision: () => number;
 
     getDragState: () => DragState;
     undo: () => boolean;
@@ -99,6 +105,7 @@ export function createViewportLoop(
     let running = false;
     let dirty = true;
     let renderedFrames = 0;
+    let documentRevision = 0;
 
     let selection: Selection = { kind: "none" };
     let dragState: DragState = createIdleDragState();
@@ -132,6 +139,22 @@ export function createViewportLoop(
         y: 0,
     };
 
+    function getDocumentRevision(): number {
+        return documentRevision;
+    }
+
+    function getSelectedObjectSnapshot(): SelectedObjectSnapshot {
+        return selectionToSelectedObjectSnapshot(document, selection);
+    }
+
+    function notifyDocumentChanged() {
+        documentRevision += 1;
+        callbacks.onDocumentChanged?.({
+            revision: documentRevision,
+            selectedObject: getSelectedObjectSnapshot(),
+        });
+    }
+
     function setSelectedRectProperty(
         property: RectEditableProperty,
         value: number
@@ -158,16 +181,14 @@ export function createViewportLoop(
             return false;
         }
         commitCommand(history, command);
-        notifySelectionChangedFromCurrentSelection();
-        markDirty();
+        notifyDocumentMutated();
         return true;
     }
 
     function undoLastEdit(): boolean {
         const ok = undo(document, history);
         if (ok) {
-            notifySelectionChangedFromCurrentSelection();
-            markDirty();
+            notifyDocumentMutated();
         }
         return ok;
     }
@@ -175,8 +196,7 @@ export function createViewportLoop(
     function redoLastEdit(): boolean {
         const ok = redo(document, history);
         if (ok) {
-            notifySelectionChangedFromCurrentSelection();
-            markDirty();
+            notifyDocumentMutated();
         }
         return ok;
     }
@@ -202,6 +222,10 @@ export function createViewportLoop(
         selection = nextSelection;
         if (changed) {
             callbacks.onSelectionChanged?.(selection, hit);
+            callbacks.onDocumentChanged?.({
+                revision: documentRevision,
+                selectedObject: getSelectedObjectSnapshot(),
+            });
             markDirty();
         }
     }
@@ -361,19 +385,22 @@ export function createViewportLoop(
                 pointer.inside = true;
                 pointer.isDown = event.buttons !== 0;
                 if (dragState.kind !== "idle") {
+                    let mutated = false;
                     dragState = updateDragCurrentPoint(dragState, {
                         x: pointer.pageX,
                         y: pointer.pageY,
                     });
                     if (dragState.kind === "move") {
-                        applyMoveDrag(document, dragState);
-                        notifySelectionChangedFromCurrentSelection();
+                        mutated = applyMoveDrag(document, dragState) || mutated;
                     }
                     if (dragState.kind === "resize") {
-                        applyResizeDrag(document, dragState);
-                        notifySelectionChangedFromCurrentSelection();
+                        mutated = applyResizeDrag(document, dragState) || mutated;
                     }
-                    markDirty();
+                    if (mutated) {
+                        notifyDocumentMutated();
+                    } else {
+                        markDirty();
+                    }
                 }
                 break;
             case "pointer_up":
@@ -387,7 +414,7 @@ export function createViewportLoop(
                     );
                     commitCommand(history, command);
                     dragState = createIdleDragState();
-                    notifySelectionChangedFromCurrentSelection();
+                    notifySelectedObjectSnapshotChanged();
                     markDirty();
                 }
                 break;
@@ -403,14 +430,17 @@ export function createViewportLoop(
                 pointer.pointerId = null;
 
                 if (dragState.kind === "move" || dragState.kind === "resize") {
-                    replaceObjectById(
+                    const restored = replaceObjectById(
                         document,
                         dragState.objectId,
                         dragState.originalObject,
                     );
                     dragState = createIdleDragState();
-                    notifySelectionChangedFromCurrentSelection();
-                    markDirty();
+                    if (restored) {
+                        notifyDocumentMutated();
+                    } else {
+                        markDirty();
+                    }
                 } else {
                     dragState = createIdleDragState();
                 }
@@ -420,24 +450,16 @@ export function createViewportLoop(
         markDirty();
     }
 
-    function notifySelectionChangedFromCurrentSelection() {
-        if (selection.kind === "none") {
-            callbacks.onSelectionChanged?.(selection, { kind: "none" });
-            return;
-        }
-        const object = findObjectById(document, selection.objectId);
-        if (!object) {
-            callbacks.onSelectionChanged?.({ kind: "none" }, { kind: "none" });
-            return;
-        }
-        callbacks.onSelectionChanged?.(
-            selection,
-            {
-                kind: "object",
-                objectId: object.id,
-                object,
-            },
-        );
+    function notifySelectedObjectSnapshotChanged() {
+        callbacks.onDocumentChanged?.({
+            revision: documentRevision,
+            selectedObject: getSelectedObjectSnapshot(),
+        });
+    }
+
+    function notifyDocumentMutated() {
+        notifyDocumentChanged();
+        markDirty();
     }
 
     function getPointerState(): PointerState {
@@ -537,5 +559,7 @@ export function createViewportLoop(
         undo: undoLastEdit,
         redo: redoLastEdit,
         setSelectedRectProperty,
+        getSelectedObjectSnapshot,
+        getDocumentRevision,
     };
 }

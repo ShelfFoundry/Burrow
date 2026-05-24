@@ -3,7 +3,6 @@ import { initWebGpu } from "../gpu/webgpu";
 import { createViewportLoop, type ViewportLoop, type ViewportPointerEventKind } from "../gpu/viewport-loop";
 import type { EditorDocument } from "../editor/document";
 import type { RectEditableProperty, SelectedObjectSnapshot } from "../editor/selection";
-import { selectionToSelectedObjectSnapshot } from "../editor/selection";
 
 export type ViewportController = {
   setSelectionRectProperty: (
@@ -12,6 +11,8 @@ export type ViewportController = {
   ) => boolean;
   undo: () => boolean;
   redo: () => boolean;
+  getDocumentRevision: () => number;
+  getSelectedObjectSnapshot: () => SelectedObjectSnapshot;
 };
 
 type ViewportProps = {
@@ -19,6 +20,7 @@ type ViewportProps = {
   onStatusChange: (message: string) => void;
   onSelectedObjectChange: (snapshot: SelectedObjectSnapshot) => void;
   onControllerReady?: (controller: ViewportController) => void;
+  onDocumentRevisionChange?: (revision: number) => void;
 };
 
 export function Viewport(props: ViewportProps) {
@@ -37,14 +39,16 @@ export function Viewport(props: ViewportProps) {
     try {
       const gpuState = await initWebGpu(canvas);
       loop = createViewportLoop(canvas, gpuState, props.document, {
-        onSelectionChanged: (selection, hit) => {
+        onSelectionChanged: (_selection, hit) => {
           if (hit.kind === "object") {
-            props.onSelectedObjectChange(selectionToSelectedObjectSnapshot(props.document, selection));
             props.onStatusChange(`Selected object: ${hit.object.id}: ${hit.object.name}`);
           } else {
-            props.onSelectedObjectChange({ kind: "none" });
             props.onStatusChange("No object selected");
           }
+        },
+        onDocumentChanged: (event) => {
+          props.onSelectedObjectChange(event.selectedObject);
+          props.onDocumentRevisionChange?.(event.revision);
         },
         onInteractionHit: (hit) => {
           if (hit.kind === "resize_handle") {
@@ -66,6 +70,12 @@ export function Viewport(props: ViewportProps) {
         },
         redo: () => {
           return loop?.redo() ?? false;
+        },
+        getDocumentRevision: () => {
+          return loop?.getDocumentRevision() ?? 0;
+        },
+        getSelectedObjectSnapshot: () => {
+          return loop?.getSelectedObjectSnapshot() ?? { kind: "none" };
         },
       });
 
