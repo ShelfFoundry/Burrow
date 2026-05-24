@@ -1,5 +1,5 @@
-import type { EditorDocument } from "../editor/document";
-import { computeInitialViewport, screenToPage, type PagePlacement, type Point, type ViewportTransform } from "../editor/geometry";
+import type { EditorDocument, EditorObject } from "../editor/document";
+import { computeInitialViewport, screenToPage, type PagePlacement, type Point, type Rect, type ViewportTransform } from "../editor/geometry";
 import { createPageRenderer, type PageRenderer } from "./page-renderer";
 import { createRectRenderer, type RectRenderer } from "./rect-renderer";
 import type { Selection } from "../editor/document";
@@ -11,6 +11,7 @@ import {
 } from "./webgpu";
 import { createObjectRenderer, type ObjectRenderer } from "./object-renderer";
 import { hitTestDocument, type HitTestResult } from "../editor/hit-test";
+import { getSelectedObject, getSelectedObjectPageBounds, selectionsEqual } from "../editor/selection";
 
 export type ViewportPointerEventKind =
     | "pointer_down"
@@ -66,7 +67,10 @@ export type ViewportLoop = {
     getPagePlacement: () => PagePlacement;
     screenToPagePoint: (point: Point) => Point;
     resetViewToFitPage: () => void;
+
     getSelection: () => Selection;
+    getSelectedObject: () => EditorObject | undefined;
+    getSelectedObjectPageBounds: () => Rect | undefined;
 };
 
 export function createViewportLoop(
@@ -112,24 +116,16 @@ export function createViewportLoop(
         return selection;
     }
 
-    function selectionEqual(a: Selection, b: Selection): boolean {
-        if (a.kind !== b.kind) {
-            return false;
-        }
+    function getLoopSelectedObject(): EditorObject | undefined {
+        return getSelectedObject(document, selection);
+    }
 
-        if (a.kind === "none" && b.kind === "none") {
-            return true;
-        }
-
-        if (a.kind === "object" && b.kind == "object") {
-            return a.objectId === b.objectId;
-        }
-
-        return false;
+    function getLoopSelectedObjectPageBounds(): Rect | undefined {
+        return getSelectedObjectPageBounds(document, selection);
     }
 
     function setSelection(nextSelection: Selection, hit: HitTestResult) {
-        const changed = !selectionEqual(selection, nextSelection);
+        const changed = !selectionsEqual(selection, nextSelection);
         selection = nextSelection;
         if (changed) {
             callbacks.onSelectionChanged?.(selection, hit);
@@ -310,5 +306,7 @@ export function createViewportLoop(
         screenToPagePoint,
         resetViewToFitPage,
         getSelection,
+        getSelectedObject: getLoopSelectedObject,
+        getSelectedObjectPageBounds: getLoopSelectedObjectPageBounds,
     };
 }

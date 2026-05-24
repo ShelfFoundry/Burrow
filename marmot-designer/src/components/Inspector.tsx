@@ -1,4 +1,4 @@
-import type { SelectionSummary } from "../App";
+import type { SelectionSummary } from "../editor/selection";
 import { WasmStatus } from './WasmStatus';
 import type { EditorDocument } from "../editor/document";
 

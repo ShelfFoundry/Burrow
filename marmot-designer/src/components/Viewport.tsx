@@ -2,8 +2,8 @@ import { onCleanup, onMount } from "solid-js";
 import { initWebGpu } from "../gpu/webgpu";
 import { createViewportLoop, type ViewportLoop, type ViewportPointerEventKind } from "../gpu/viewport-loop";
 import type { EditorDocument } from "../editor/document";
-import type { SelectionSummary } from "../App";
-import { objectToSelectionSummary } from "../editor/selection-summary";
+import { selectionToSummary } from "../editor/selection";
+import { type SelectionSummary } from "../editor/selection";
 
 type ViewportProps = {
   document: EditorDocument,
@@ -27,9 +27,9 @@ export function Viewport(props: ViewportProps) {
     try {
       const gpuState = await initWebGpu(canvas);
       loop = createViewportLoop(canvas, gpuState, props.document, {
-        onSelectionChanged: (_selection, hit) => {
+        onSelectionChanged: (selection, hit) => {
           if (hit.kind === "object") {
-            props.onSelectionChange(objectToSelectionSummary(hit.object));
+            props.onSelectionChange(selectionToSummary(props.document, selection));
             props.onStatusChange(`Selected object: ${hit.object.id}: ${hit.object.name}`);
           } else {
             props.onSelectionChange({ kind: "none" });

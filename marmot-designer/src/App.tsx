@@ -5,20 +5,7 @@ import { Inspector } from './components/Inspector';
 import { StatusBar } from './components/StatusBar';
 import { createSampleDocument } from './editor/sample';
 import type { EditorDocument } from './editor/document';
-
-export type SelectionSummary =
-  | {
-    kind: "none"
-  }
-  | {
-    kind: "object";
-    id: number;
-    objectType: "rect" | "line" | "image" | "text";
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
+import type { SelectionSummary } from './editor/selection';
 
 export default function App() {
   const [document] = createSignal<EditorDocument>(createSampleDocument());
