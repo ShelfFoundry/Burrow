@@ -2,7 +2,9 @@ import type {
     EditorDocument,
     EditorObject,
     ObjectId,
+    RectObject,
 } from "./document";
+import type { ResizeHandleId } from "./handles";
 
 export function replaceObjectById(
     document: EditorDocument,
@@ -40,4 +42,79 @@ export function moveObjectByDelta(
                 y2: object.y2 + dy,
             };
     }
+}
+
+export function resizeRectObjectFromHandle(
+    object: RectObject,
+    handleId: ResizeHandleId,
+    dx: number,
+    dy: number,
+    minSize = 8,
+): RectObject {
+    let left = object.x;
+    let top = object.y;
+    let right = object.x + object.width;
+    let bottom = object.y + object.height;
+
+    switch (handleId) {
+        case "nw":
+            left += dx;
+            top += dy;
+            break;
+
+        case "n":
+            top += dy;
+            break;
+
+        case "ne":
+            right += dx;
+            top += dy;
+            break;
+
+        case "e":
+            right += dx;
+            break;
+
+        case "se":
+            right += dx;
+            bottom += dy;
+            break;
+
+        case "s":
+            bottom += dy;
+            break;
+
+        case "sw":
+            left += dx;
+            bottom += dy;
+            break;
+
+        case "w":
+            left += dx;
+            break;
+    }
+
+    if (right - left < minSize) {
+        if (handleId.includes("w")) {
+            left = right - minSize;
+        } else {
+            right = left + minSize;
+        }
+    }
+
+    if (bottom - top < minSize) {
+        if (handleId.includes("n")) {
+            top = bottom - minSize;
+        } else {
+            bottom = top + minSize;
+        }
+    }
+
+    return {
+        ...object,
+        x: left,
+        y: top,
+        width: right - left,
+        height: bottom - top,
+    };
 }

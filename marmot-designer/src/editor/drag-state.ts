@@ -1,7 +1,7 @@
 import { cloneEditorObject, type EditorDocument, type EditorObject, type ObjectId } from "./document";
 import type { Point } from "./geometry";
 import type { ResizeHandleId } from "./handles";
-import { moveObjectByDelta, replaceObjectById } from "./object-mutations";
+import { moveObjectByDelta, replaceObjectById, resizeRectObjectFromHandle } from "./object-mutations";
 
 export type DragState =
     | {
@@ -102,5 +102,29 @@ export function applyMoveDrag(document: EditorDocument, dragState: DragState): b
         document,
         dragState.objectId,
         movedObject,
+    );
+}
+
+export function applyResizeDrag(
+    document: EditorDocument,
+    dragState: DragState,
+): boolean {
+    if (dragState.kind !== "resize") {
+        return false;
+    }
+    if (dragState.originalObject.kind !== "rect") {
+        return false;
+    }
+    const delta = getDragDelta(dragState);
+    const resizedObject = resizeRectObjectFromHandle(
+        dragState.originalObject,
+        dragState.handleId,
+        delta.x,
+        delta.y,
+    );
+    return replaceObjectById(
+        document,
+        dragState.objectId,
+        resizedObject,
     );
 }

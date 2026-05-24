@@ -28,22 +28,22 @@ export function Inspector(props: InspectorProps) {
 
           <div class="property-row">
             <span>X</span>
-            <strong>{props.selection.x}</strong>
+            <strong>{props.selection.x.toFixed(3)}</strong>
           </div>
 
           <div class="property-row">
             <span>Y</span>
-            <strong>{props.selection.y}</strong>
+            <strong>{props.selection.y.toFixed(3)}</strong>
           </div>
 
           <div class="property-row">
             <span>Width</span>
-            <strong>{props.selection.width}</strong>
+            <strong>{props.selection.width.toFixed(3)}</strong>
           </div>
 
           <div class="property-row">
             <span>Height</span>
-            <strong>{props.selection.height}</strong>
+            <strong>{props.selection.height.toFixed(3)}</strong>
           </div>
         </div>
       )}
