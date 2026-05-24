@@ -28,7 +28,13 @@ export default function App() {
           onSelectedObjectChange={setSelectedObject}
         />
 
-        <Inspector document={document()} selectedObject={selectedObject()} />
+        <Inspector
+          document={document()}
+          selectedObject={selectedObject()}
+          onRectPropertyChange={(property, value) => {
+            setStatus(`Inspector edit: ${property} = ${value}`);
+          }}
+        />
       </main>
 
       <StatusBar message={status()} />

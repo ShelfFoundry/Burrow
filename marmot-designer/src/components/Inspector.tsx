@@ -1,9 +1,14 @@
 import type { EditorDocument } from "../editor/document";
 import type { SelectedObjectSnapshot } from "../editor/selection";
+import { NumberField } from "./NumberField";
 
 type InspectorProps = {
   selectedObject: SelectedObjectSnapshot;
   document: EditorDocument;
+  onRectPropertyChange?: (
+    property: "x" | "y" | "width" | "height",
+    value: number,
+  ) => void;
 };
 
 export function Inspector(props: InspectorProps) {
@@ -28,41 +33,59 @@ export function Inspector(props: InspectorProps) {
       {props.selectedObject.kind === "none" ? (
         <p class="muted">No selection</p>
       ) : props.selectedObject.kind === "rect" ? (
-        <div class="property-list">
-          <div class="property-row">
-            <span>ID</span>
-            <strong>{props.selectedObject.id}</strong>
+        <div class="inspector-form">
+          <div class="property-list">
+            <div class="property-row">
+              <span>ID</span>
+              <strong>{props.selectedObject.id}</strong>
+            </div>
+
+            <div class="property-row">
+              <span>Name</span>
+              <strong>{props.selectedObject.name}</strong>
+            </div>
+
+            <div class="property-row">
+              <span>Type</span>
+              <strong>rect</strong>
+            </div>
           </div>
 
-          <div class="property-row">
-            <span>Name</span>
-            <strong>{props.selectedObject.name}</strong>
-          </div>
+          <section class="inspector-section">
+            <h3 class="inspector-section-title">Geometry</h3>
 
-          <div class="property-row">
-            <span>Type</span>
-            <strong>rect</strong>
-          </div>
+            <NumberField
+              label="X"
+              value={props.selectedObject.x}
+              onValueChange={(value) => {
+                props.onRectPropertyChange?.("x", value);
+              }}
+            />
 
-          <div class="property-row">
-            <span>X</span>
-            <strong>{props.selectedObject.x}</strong>
-          </div>
+            <NumberField
+              label="Y"
+              value={props.selectedObject.y}
+              onValueChange={(value) => {
+                props.onRectPropertyChange?.("y", value);
+              }}
+            />
 
-          <div class="property-row">
-            <span>Y</span>
-            <strong>{props.selectedObject.y}</strong>
-          </div>
+            <NumberField
+              label="Width"
+              value={props.selectedObject.width}
+              onValueChange={(value) => {
+                props.onRectPropertyChange?.("width", value);
+              }}
+            />
 
-          <div class="property-row">
-            <span>Width</span>
-            <strong>{props.selectedObject.width}</strong>
-          </div>
-
-          <div class="property-row">
-            <span>Height</span>
-            <strong>{props.selectedObject.height}</strong>
-          </div>
+            <NumberField
+              label="Height"
+              value={props.selectedObject.height}
+              onValueChange={(value) => {
+                props.onRectPropertyChange?.("height", value);
+              }}
+            />
+          </section>
         </div>
       ) : (
         <div class="property-list">
@@ -101,7 +124,8 @@ export function Inspector(props: InspectorProps) {
             <strong>{props.selectedObject.y2}</strong>
           </div>
         </div>
-      )}
+      )
+      }
     </aside>
   );
 }

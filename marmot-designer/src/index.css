@@ -153,3 +153,45 @@ button:hover {
 .document-summary {
   margin-bottom: 16px;
 }
+
+.number-field {
+  display: grid;
+  gap: 4px;
+}
+
+.number-field span {
+  color: #9aa0a6;
+  font-size: 12px;
+}
+
+.number-field input {
+  width: 100%;
+  font: inherit;
+  color: #f1f3f4;
+  background: #303134;
+  border: 1px solid #5f6368;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.number-field input:focus {
+  outline: 2px solid #4c8bf5;
+  outline-offset: 1px;
+}
+
+.inspector-form {
+  display: grid;
+  gap: 12px;
+}
+
+.inspector-section {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.inspector-section-title {
+  margin: 0;
+  font-size: 13px;
+  color: #f1f3f4;
+}
