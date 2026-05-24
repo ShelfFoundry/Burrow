@@ -35,7 +35,12 @@ export function Viewport(props: ViewportProps) {
             props.onSelectionChange({ kind: "none" });
             props.onStatusChange("No object selected");
           }
-        }
+        },
+        onInteractionHit: (hit) => {
+          if (hit.kind === "resize_handle") {
+            props.onStatusChange(`Resize handle ${hit.handleId} on object ${hit.objectId}`);
+          }
+        },
       });
       loop.start();
 

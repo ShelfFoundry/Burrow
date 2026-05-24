@@ -1,5 +1,5 @@
 import type { EditorDocument, EditorObject } from "../editor/document";
-import { computeInitialViewport, screenToPage, type PagePlacement, type Point, type Rect, type ViewportTransform } from "../editor/geometry";
+import { computeInitialViewport, pageRectToScreen, screenToPage, type PagePlacement, type Point, type Rect, type ViewportTransform } from "../editor/geometry";
 import { createPageRenderer, type PageRenderer } from "./page-renderer";
 import { createRectRenderer, type RectRenderer } from "./rect-renderer";
 import type { Selection } from "../editor/document";
@@ -13,6 +13,8 @@ import { createObjectRenderer, type ObjectRenderer } from "./object-renderer";
 import { hitTestDocument, type HitTestResult } from "../editor/hit-test";
 import { getSelectedObject, getSelectedObjectPageBounds, selectionsEqual } from "../editor/selection";
 import { createSelectionRenderer, type SelectionRenderer } from "./selection-renderer";
+import type { InteractionHit } from "../editor/interaction-hit";
+import { hitTestResizeHandles, RESIZE_HANDLE_SIZE } from "../editor/handles";
 
 export type ViewportPointerEventKind =
     | "pointer_down"
@@ -52,6 +54,7 @@ export type PointerState = {
 
 export type ViewportLoopCallbacks = {
     onSelectionChanged?: (selection: Selection, hit: HitTestResult) => void;
+    onInteractionHit?: (hit: InteractionHit) => void;
 };
 
 export type ViewportLoop = {
@@ -167,6 +170,57 @@ export function createViewportLoop(
         dirty = true;
     }
 
+    function hitTestSelectionHandle(screenPoint: Point): InteractionHit {
+        if (selection.kind !== "object") {
+            return { kind: "none" };
+        }
+        const selectedBounds = getLoopSelectedObjectPageBounds();
+        if (!selectedBounds) {
+            return { kind: "none" };
+        }
+        const screenBounds = pageRectToScreen(
+            selectedBounds,
+            pagePlacement,
+            transform,
+        );
+        const handleHit = hitTestResizeHandles(
+            screenPoint,
+            screenBounds,
+            RESIZE_HANDLE_SIZE,
+        );
+        if (!handleHit) {
+            return { kind: "none" };
+        }
+        return {
+            kind: "resize_handle",
+            objectId: selection.objectId,
+            handleId: handleHit.handleId,
+        };
+    }
+
+    function hitTestInteraction(screenPoint: Point, pagePoint: Point): InteractionHit {
+        const handleHit = hitTestSelectionHandle(screenPoint);
+        if (handleHit.kind !== "none") {
+            return handleHit;
+        }
+        const screenTolerance = 6;
+        const pageTolerance = screenTolerance / transform.zoom;
+
+        const objectHit = hitTestDocument(
+            document,
+            pagePoint,
+            { tolerance: pageTolerance },
+        );
+        if (objectHit.kind === "object") {
+            return {
+                kind: "object",
+                objectId: objectHit.objectId,
+                object: objectHit.object,
+            };
+        }
+        return { kind: "none" };
+    }
+
     function handlePointerEvent(event: ViewportPointerEvent) {
         const pagePoint = screenToPagePoint({
             x: event.x,
@@ -186,18 +240,33 @@ export function createViewportLoop(
                 pointer.inside = true;
                 pointer.isDown = true;
 
-                const screenTolerance = 8;
-                const pageTolerance = screenTolerance / transform.zoom;
-
-                const hit = hitTestDocument(document, {
-                    x: pointer.pageX,
-                    y: pointer.pageY,
-                }, { tolerance: pageTolerance });
-
-                if (hit.kind === "object") {
-                    setSelection({ kind: "object", objectId: hit.objectId }, hit);
-                } else {
-                    setSelection({ kind: "none" }, hit);
+                const interactionHit = hitTestInteraction(
+                    { x: pointer.x, y: pointer.y },
+                    { x: pointer.pageX, y: pointer.pageY },
+                );
+                switch (interactionHit.kind) {
+                    case "resize_handle":
+                        callbacks.onInteractionHit?.(interactionHit);
+                        markDirty();
+                        break;
+                    case "object":
+                        setSelection(
+                            {
+                                kind: "object",
+                                objectId: interactionHit.objectId,
+                            },
+                            {
+                                kind: "object",
+                                objectId: interactionHit.objectId,
+                                object: interactionHit.object,
+                            }
+                        );
+                        callbacks.onInteractionHit?.(interactionHit);
+                        break;
+                    case "none":
+                        setSelection({ kind: "none" }, { kind: "none" });
+                        callbacks.onInteractionHit?.(interactionHit);
+                        break;
                 }
                 break;
             case "pointer_move":

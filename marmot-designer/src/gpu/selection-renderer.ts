@@ -6,7 +6,7 @@ import type {
 } from "../editor/geometry";
 import { pageRectToScreen } from "../editor/geometry";
 import type { GpuRect } from "./rect-renderer";
-import { getResizeHandlesForScreenRect, squareRectFromCenter } from "../editor/handles";
+import { getResizeHandlesForScreenRect, RESIZE_HANDLE_SIZE, squareRectFromCenter } from "../editor/handles";
 
 const SELECTION_COLOR: Rgba = {
     r: 0.2,
@@ -15,7 +15,6 @@ const SELECTION_COLOR: Rgba = {
     a: 1.0,
 };
 const SELECTION_OUTLINE_WIDTH = 2;
-const HANDLE_SIZE = 8;
 const HANDLE_FILL_COLOR: Rgba = {
     r: 1,
     g: 1,
@@ -118,11 +117,11 @@ function buildHandleRects(screenBounds: Rect): GpuRect[] {
     const rects: GpuRect[] = [];
 
     for (const handle of handles) {
-        const outer = squareRectFromCenter(handle.x, handle.y, HANDLE_SIZE);
+        const outer = squareRectFromCenter(handle.x, handle.y, RESIZE_HANDLE_SIZE);
         const inner = squareRectFromCenter(
             handle.x,
             handle.y,
-            Math.max(1, HANDLE_SIZE - HANDLE_STROKE_WIDTH * 2),
+            Math.max(1, RESIZE_HANDLE_SIZE - HANDLE_STROKE_WIDTH * 2),
         );
         rects.push(
             {

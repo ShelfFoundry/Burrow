@@ -1,4 +1,7 @@
-import type { Rect } from "./geometry";
+import type { Rect, Point } from "./geometry";
+import { pointInRect } from "./geometry";
+
+export const RESIZE_HANDLE_SIZE = 8;
 
 export type ResizeHandleId =
     | "nw"
@@ -15,6 +18,28 @@ export type ResizeHandle = {
     x: number;
     y: number;
 };
+
+export type ResizeHandleHit = {
+    handleId: ResizeHandleId,
+};
+
+export function hitTestResizeHandles(
+    point: Point,
+    bounds: Rect,
+    handleSize: number,
+): ResizeHandleHit | undefined {
+    const handles = getResizeHandlesForScreenRect(bounds);
+    for (let index = handles.length - 1; index >= 0; index -= 1) {
+        const handle = handles[index];
+        const handleRect = squareRectFromCenter(handle.x, handle.y, handleSize);
+        if (pointInRect(point, handleRect)) {
+            return {
+                handleId: handle.id,
+            };
+        }
+    }
+    return undefined;
+}
 
 export function getResizeHandlesForScreenRect(rect: Rect): ResizeHandle[] {
     const x0 = rect.x;
