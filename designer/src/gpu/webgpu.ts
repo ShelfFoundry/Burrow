@@ -44,7 +44,14 @@ export async function initWebGpu(canvas: HTMLCanvasElement): Promise<WebGpuState
     };
 }
 
-export function beginFrame(state: WebGpuState): FrameState {
+export type ClearColor = {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+};
+
+export function beginFrame(state: WebGpuState, clearValue: ClearColor): FrameState {
     const textureView = state.context.getCurrentTexture().createView();
     const encoder = state.device.createCommandEncoder();
 
@@ -52,12 +59,7 @@ export function beginFrame(state: WebGpuState): FrameState {
         colorAttachments: [
             {
                 view: textureView,
-                clearValue: {
-                    r: 0.16,
-                    g: 0.17,
-                    b: 0.18,
-                    a: 1.0,
-                },
+                clearValue,
                 loadOp: "clear",
                 storeOp: "store",
             },

@@ -3,7 +3,7 @@ import { initWebGpu, resizeCanvasToDisplaySize } from "../gpu/webgpu";
 import { createViewportLoop, type ViewportLoop, type ViewportPointerEventKind } from "../gpu/viewport-loop";
 import type { EditorDocument } from "../editor/document";
 import type { RectEditableProperty, SelectedObjectSnapshot } from "../editor/selection";
-import { createEngine, type Engine } from "../wasm/engine";
+import { createEngine, waitForDesignerGpuReady, type Engine } from "../wasm/engine";
 
 export type ViewportController = {
   setSelectionRectProperty: (
@@ -45,8 +45,15 @@ export function Viewport(props: ViewportProps) {
 
       engine = await createEngine();
       const initialized = engine.init(canvas.width, canvas.height);
+      const gpuReady = await waitForDesignerGpuReady(engine);
       const pageSize = engine.getPageSize();
       const objectCount = engine.getObjectCount();
+      console.log("Engine initialized", initialized);
+      console.log("Gpu ready", gpuReady);
+      console.log("Has adapter", engine.hasGpuAdapter());
+      console.log("Has device", engine.hasGpuDevice());
+      console.log("Has queue", engine.hasGpuQueue());
+      console.log("Has surface", engine.hasGpuSurface());
 
       loop = createViewportLoop(
         canvas,
@@ -163,6 +170,7 @@ export function Viewport(props: ViewportProps) {
   return (
     <section class="viewport-panel">
       <canvas
+        id="designer-canvas"
         ref={canvasRef}
         class="viewport-canvas"
         tabindex={0}

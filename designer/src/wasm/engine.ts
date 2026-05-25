@@ -1,3 +1,4 @@
+import type { ClearColor } from "../gpu/webgpu";
 import { loadDesignerWasm, type DesignerWasm } from "./designer";
 
 export type DesignerPointerDebugState = {
@@ -61,6 +62,15 @@ export type Engine = {
     pointerLeave: () => void;
 
     getPointerDebugState: () => DesignerPointerDebugState;
+
+    isGpuInitializeid: () => boolean;
+    getClearColor: () => ClearColor;
+    clearFrame: () => boolean;
+
+    hasGpuSurface: () => boolean;
+    hasGpuAdapter: () => boolean;
+    hasGpuDevice: () => boolean;
+    hasGpuQueue: () => boolean;
 };
 
 export async function createEngine(): Promise<Engine> {
@@ -154,6 +164,39 @@ export async function createEngine(): Promise<Engine> {
         };
     }
 
+    function isGpuInitializeid(): boolean {
+        return wasm.exports.designer_gpu_is_initialized() !== 0;
+    }
+
+    function getClearColor() {
+        return {
+            r: wasm.exports.designer_gpu_clear_r(),
+            g: wasm.exports.designer_gpu_clear_g(),
+            b: wasm.exports.designer_gpu_clear_b(),
+            a: wasm.exports.designer_gpu_clear_a(),
+        };
+    }
+
+    function clearFrame(): boolean {
+        return wasm.exports.designer_gpu_clear_frame() !== 0;
+    }
+
+    function hasGpuSurface(): boolean {
+        return wasm.exports.designer_gpu_has_surface() !== 0;
+    }
+
+    function hasGpuAdapter(): boolean {
+        return wasm.exports.designer_gpu_has_adapter() !== 0;
+    }
+
+    function hasGpuDevice(): boolean {
+        return wasm.exports.designer_gpu_has_device() !== 0;
+    }
+
+    function hasGpuQueue(): boolean {
+        return wasm.exports.designer_gpu_has_queue() !== 0;
+    }
+
     return {
         wasm,
         init,
@@ -170,5 +213,34 @@ export async function createEngine(): Promise<Engine> {
         pointerCancel,
         pointerLeave,
         getPointerDebugState,
+        isGpuInitializeid,
+        getClearColor,
+        clearFrame,
+        hasGpuSurface,
+        hasGpuAdapter,
+        hasGpuDevice,
+        hasGpuQueue,
     };
+}
+
+export async function waitForDesignerGpuReady(
+    engine: Engine,
+    timeoutMs = 3000,
+): Promise<boolean> {
+    const startedAt = performance.now();
+
+    while (performance.now() - startedAt < timeoutMs) {
+        if (
+            engine.hasGpuSurface() &&
+            engine.hasGpuAdapter() &&
+            engine.hasGpuDevice() &&
+            engine.hasGpuQueue()
+        ) {
+            return true;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 16));
+    }
+
+    return false;
 }

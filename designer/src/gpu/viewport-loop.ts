@@ -481,7 +481,7 @@ export function createViewportLoop(
 
         if (dirty) {
             engine?.frame();
-            const frameState = beginFrame(gpuState);
+            const frameState = beginFrame(gpuState, engine?.getClearColor()!);
 
             const pageRects = pageRenderer.buildRects({
                 document,

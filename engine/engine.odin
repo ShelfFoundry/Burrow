@@ -8,6 +8,7 @@ Engine_State :: struct {
 	document:        Editor_Document,
 	transform:       Viewport_Transform,
 	pointer:         Pointer_State,
+	gpu:             Gpu_State,
 }
 
 state: Engine_State
@@ -20,6 +21,7 @@ engine_init :: proc(width: i32, height: i32) {
 
 	document_init_blank(&state.document, 612.0, 792.0)
 	engine_recompute_viewport_transform()
+	gpu_init(&state.gpu)
 }
 
 engine_resize :: proc(width: i32, height: i32) {
@@ -140,4 +142,44 @@ engine_pointer_inside :: proc() -> i32 {
 	}
 
 	return 0
+}
+
+engine_gpu_is_initialized :: proc() -> bool {
+	return gpu_is_initialized(&state.gpu)
+}
+
+engine_gpu_clear_r :: proc() -> f64 {
+	return state.gpu.clear_r
+}
+
+engine_gpu_clear_g :: proc() -> f64 {
+	return state.gpu.clear_g
+}
+
+engine_gpu_clear_b :: proc() -> f64 {
+	return state.gpu.clear_b
+}
+
+engine_gpu_clear_a :: proc() -> f64 {
+	return state.gpu.clear_a
+}
+
+engine_gpu_clear_frame :: proc() -> bool {
+	return gpu_clear_frame(&state.gpu)
+}
+
+engine_gpu_has_surface :: proc() -> bool {
+	return state.gpu.surface != nil
+}
+
+engine_gpu_has_adapter :: proc() -> bool {
+	return gpu_has_adapter(&state.gpu)
+}
+
+engine_gpu_has_device :: proc() -> bool {
+	return gpu_has_device(&state.gpu)
+}
+
+engine_gpu_has_queue :: proc() -> bool {
+	return gpu_has_queue(&state.gpu)
 }

@@ -129,4 +129,77 @@ designer_pointer_inside :: proc() -> i32 {
 	return engine_pointer_inside()
 }
 
+@(export)
+designer_gpu_is_initialized :: proc() -> i32 {
+	if engine_gpu_is_initialized() {
+		return 1
+	}
+	return 0
+}
+
+@(export)
+designer_gpu_clear_r :: proc() -> f64 {
+	return engine_gpu_clear_r()
+}
+
+@(export)
+designer_gpu_clear_g :: proc() -> f64 {
+	return engine_gpu_clear_g()
+}
+
+@(export)
+designer_gpu_clear_b :: proc() -> f64 {
+	return engine_gpu_clear_b()
+}
+
+@(export)
+designer_gpu_clear_a :: proc() -> f64 {
+	return engine_gpu_clear_a()
+}
+
+@(export)
+designer_gpu_clear_frame :: proc() -> i32 {
+	if engine_gpu_clear_frame() {
+		return 1
+	}
+
+	return 0
+}
+
+@(export)
+designer_gpu_has_surface :: proc() -> i32 {
+	if engine_gpu_has_surface() {
+		return 1
+	}
+
+	return 0
+}
+
+@(export)
+designer_gpu_has_adapter :: proc() -> i32 {
+	if engine_gpu_has_adapter() {
+		return 1
+	}
+
+	return 0
+}
+
+@(export)
+designer_gpu_has_device :: proc() -> i32 {
+	if engine_gpu_has_device() {
+		return 1
+	}
+
+	return 0
+}
+
+@(export)
+designer_gpu_has_queue :: proc() -> i32 {
+	if engine_gpu_has_queue() {
+		return 1
+	}
+
+	return 0
+}
+
 main :: proc() {}
