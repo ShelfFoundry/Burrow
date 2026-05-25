@@ -213,4 +213,14 @@ designer_render_document :: proc() -> i32 {
 	return 0
 }
 
+@(export)
+designer_clear_objects :: proc() {
+	engine_clear_objects()
+}
+
+@(export)
+designer_add_rect :: proc(x, y, width, height: f32, r, g, b, a: f32) -> i32 {
+	return engine_add_rect(x, y, width, height, r, g, b, a)
+}
+
 main :: proc() {}

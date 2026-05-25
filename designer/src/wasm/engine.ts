@@ -15,7 +15,7 @@ export type Engine = {
 
     init: (width: number, height: number) => boolean;
     resize: (width: number, height: number) => void;
-    fitPageToView: ()=>void;
+    fitPageToView: () => void;
     frame: () => number;
 
     isInitialized: () => boolean;
@@ -65,6 +65,14 @@ export type Engine = {
 
     clearFrame: () => boolean;
     renderDocument: () => boolean;
+    clearObjects: () => void;
+    addRect: (
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        color: { r: number; g: number; b: number; a: number },
+    ) => number;
 
     isGpuInitializeid: () => boolean;
     hasGpuSurface: () => boolean;
@@ -182,6 +190,29 @@ export async function createEngine(): Promise<Engine> {
         return wasm.exports.designer_render_document() !== 0;
     }
 
+    function clearObjects(): void {
+        wasm.exports.designer_clear_objects();
+    }
+
+    function addRect(
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        color: { r: number; g: number; b: number; a: number },
+    ): number {
+        return wasm.exports.designer_add_rect(
+            x,
+            y,
+            width,
+            height,
+            color.r,
+            color.g,
+            color.b,
+            color.a,
+        );
+    }
+
     function hasGpuSurface(): boolean {
         return wasm.exports.designer_gpu_has_surface() !== 0;
     }
@@ -232,6 +263,8 @@ export async function createEngine(): Promise<Engine> {
         configureGpuSurface,
         isGpuSurfaceConfigured,
         renderDocument,
+        clearObjects,
+        addRect,
     };
 }
 

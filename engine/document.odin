@@ -58,14 +58,14 @@ Editor_Document :: struct {
 	page:         Page,
 	object_count: int,
 	objects:      [MAX_OBJECTS]Editor_Object,
+	next_object_id: i32,
 }
 
 document_init_blank :: proc(document: ^Editor_Document, page_width, page_height: f32) {
 	document.page.width = page_width
 	document.page.height = page_height
 	document.object_count = 0
-
-	document_add_samples(document)
+	document.next_object_id = 1
 }
 
 document_add_rect :: proc(
@@ -112,37 +112,34 @@ document_page_height :: proc(document: ^Editor_Document) -> f32 {
 	return document.page.height
 }
 
-document_add_samples :: proc(document: ^Editor_Document) {
-	document_add_rect(
+document_clear_objects :: proc(document: ^Editor_Document) {
+	document.object_count = 0
+	document.next_object_id = 1
+}
+
+document_add_rect_auto_id :: proc(
+	document: ^Editor_Document,
+	name_id: i32,
+	x, y, width, height: f32,
+	fill: RGBA
+) -> Object_Id {
+	id := Object_Id(document.next_object_id)
+
+	ok := document_add_rect(
 		document,
-		Object_Id(1),
-		1,
-		72.0,
-		72.0,
-		180.0,
-		120.0,
-		RGBA{r = 0.90, g = 0.15, b = 0.15, a = 1.0},
+		id,
+		name_id,
+		x,
+		y,
+		width,
+		height,
+		fill
 	)
 
-	document_add_rect(
-		document,
-		Object_Id(2),
-		2,
-		300.0,
-		120.0,
-		160.0,
-		220.0,
-		RGBA{r = 0.15, g = 0.45, b = 0.90, a = 1.0},
-	)
+	if !ok {
+		return Object_Id(0)
+	}
 
-	document_add_rect(
-		document,
-		Object_Id(3),
-		3,
-		120.0,
-		420.0,
-		360.0,
-		80.0,
-		RGBA{r = 0.15, g = 0.70, b = 0.30, a = 1.0},
-	)
+	document.next_object_id += 1
+	return id
 }

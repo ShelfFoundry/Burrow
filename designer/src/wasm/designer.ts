@@ -8,7 +8,7 @@ export type DesignerWasmExports = {
     designer_gpu_is_initialized: () => number;
 
     designer_resize: (width: number, height: number) => void;
-    designer_fit_page_to_viewport: ()=>void;
+    designer_fit_page_to_viewport: () => void;
     designer_viewport_width: () => number;
     designer_viewport_height: () => number;
 
@@ -53,6 +53,17 @@ export type DesignerWasmExports = {
 
     designer_gpu_clear_frame: () => number;
     designer_render_document: () => number;
+    designer_clear_objects: () => void;
+    designer_add_rect: (
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        r: number,
+        g: number,
+        b: number,
+        a: number,
+    ) => number;
 
     designer_gpu_has_surface: () => number;
     designer_gpu_has_adapter: () => number;
@@ -124,7 +135,7 @@ export async function loadDesignerWasm(): Promise<DesignerWasm> {
 
     const result = await WebAssembly.instantiateStreaming(fetch("/designer.wasm"), env);
     const exports = result.instance.exports as unknown as DesignerWasmExports;
-    memoryBridge.exports = exports; 
+    memoryBridge.exports = exports;
 
     return {
         exports,

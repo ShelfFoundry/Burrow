@@ -55,6 +55,16 @@ export function Viewport(props: ViewportProps) {
           canvas.height,
         );
 
+        engine.addRect(
+          0, 0, 100, 100,
+          { r: 0, g: 0, b: 0, a: 0 }
+        );
+
+        engine.addRect(
+          100, 100, 100, 100,
+          { r: 1, g: 0, b: 0, a: 0 }
+        );
+
         engine.renderDocument();
 
         window.addEventListener("resize", () => {
