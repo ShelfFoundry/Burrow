@@ -17,6 +17,37 @@ export type DesignerWasmExports = {
     designer_zoom: () => number;
     designer_pan_x: () => number;
     designer_pan_y: () => number;
+
+    designer_pointer_down: (
+        x: number,
+        y: number,
+        button: number,
+        buttons: number,
+    ) => void;
+
+    designer_pointer_move: (
+        x: number,
+        y: number,
+        buttons: number,
+    ) => void;
+
+    designer_pointer_up: (
+        x: number,
+        y: number,
+        button: number,
+        buttons: number,
+    ) => void;
+
+    designer_pointer_cancel: () => void;
+    designer_pointer_leave: () => void;
+
+    designer_pointer_x: () => number;
+    designer_pointer_y: () => number;
+    designer_pointer_page_x: () => number;
+    designer_pointer_page_y: () => number;
+    designer_pointer_buttons: () => number;
+    designer_pointer_is_down: () => number;
+    designer_pointer_inside: () => number;
 };
 
 export type DesignerWasm = {

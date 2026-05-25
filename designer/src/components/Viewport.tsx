@@ -171,38 +171,64 @@ export function Viewport(props: ViewportProps) {
           if (!canvas) return;
 
           canvas.setPointerCapture(event.pointerId);
-          loop?.handlePointerEvent(toViewportPointerEvent("pointer_down", canvas, event));
+          const viewportEvent = toViewportPointerEvent("pointer_down", canvas, event);
+
+          engine?.pointerDown(
+            viewportEvent.x,
+            viewportEvent.y,
+            viewportEvent.button,
+            viewportEvent.buttons,
+          );
+
+          loop?.handlePointerEvent(viewportEvent);
         }}
         onPointerMove={(event) => {
           const canvas = canvasRef;
           if (!canvas) return;
 
-          loop?.handlePointerEvent(toViewportPointerEvent("pointer_move", canvas, event));
+          const viewportEvent = toViewportPointerEvent("pointer_move", canvas, event);
+
+          engine?.pointerMove(
+            viewportEvent.x,
+            viewportEvent.y,
+            viewportEvent.buttons,
+          );
+
+          loop?.handlePointerEvent(viewportEvent);
         }}
         onPointerUp={(event) => {
           const canvas = canvasRef;
           if (!canvas) return;
 
-          loop?.handlePointerEvent(toViewportPointerEvent("pointer_up", canvas, event));
+          const viewportEvent = toViewportPointerEvent("pointer_up", canvas, event);
 
-          const pointer = loop?.getPointerState();
+          engine?.pointerUp(
+            viewportEvent.x,
+            viewportEvent.y,
+            viewportEvent.button,
+            viewportEvent.buttons
+          );
 
-          if (pointer) {
-            props.onStatusChange(`Screen: ${pointer.x.toFixed(0)}, ${pointer.y.toFixed(0)} | Page: ${pointer.pageX.toFixed(1)}, ${pointer.pageY.toFixed(1)}`);
+          loop?.handlePointerEvent(viewportEvent);
+
+          if (canvas.hasPointerCapture(event.pointerId)) {
+            canvas.releasePointerCapture(event.pointerId);
           }
         }}
         onPointerCancel={(event) => {
           const canvas = canvasRef;
           if (!canvas) return;
-          loop?.handlePointerEvent(toViewportPointerEvent("pointer_cancel", canvas, event));
+          const viewportEvent = toViewportPointerEvent("pointer_cancel", canvas, event);
+          engine?.pointerCancel();
+          loop?.handlePointerEvent(viewportEvent);
           if (canvas.hasPointerCapture(event.pointerId)) {
             canvas.releasePointerCapture(event.pointerId);
           }
-          props.onStatusChange("Pointer canceled");
         }}
         onPointerLeave={(event) => {
           const canvas = canvasRef;
           if (!canvas) return;
+          engine?.pointerLeave();
           loop?.handlePointerEvent(toViewportPointerEvent("pointer_leave", canvas, event));
         }}
       />

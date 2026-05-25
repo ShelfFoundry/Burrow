@@ -1,5 +1,15 @@
 import { loadDesignerWasm, type DesignerWasm } from "./designer";
 
+export type DesignerPointerDebugState = {
+    x: number;
+    y: number;
+    pageX: number;
+    pageY: number;
+    buttons: number;
+    isDown: boolean;
+    inside: boolean;
+};
+
 export type Engine = {
     wasm: DesignerWasm;
 
@@ -26,6 +36,31 @@ export type Engine = {
     };
 
     getObjectCount: () => number;
+
+    pointerDown: (
+        x: number,
+        y: number,
+        button: number,
+        buttons: number,
+    ) => void;
+
+    pointerMove: (
+        x: number,
+        y: number,
+        buttons: number,
+    ) => void;
+
+    pointerUp: (
+        x: number,
+        y: number,
+        button: number,
+        buttons: number,
+    ) => void;
+
+    pointerCancel: () => void;
+    pointerLeave: () => void;
+
+    getPointerDebugState: () => DesignerPointerDebugState;
 };
 
 export async function createEngine(): Promise<Engine> {
@@ -73,6 +108,52 @@ export async function createEngine(): Promise<Engine> {
         return wasm.exports.designer_object_count();
     }
 
+    function pointerDown(
+        x: number,
+        y: number,
+        button: number,
+        buttons: number,
+    ): void {
+        wasm.exports.designer_pointer_down(x, y, button, buttons);
+    }
+
+    function pointerMove(
+        x: number,
+        y: number,
+        buttons: number,
+    ): void {
+        wasm.exports.designer_pointer_move(x, y, buttons);
+    }
+
+    function pointerUp(
+        x: number,
+        y: number,
+        button: number,
+        buttons: number,
+    ): void {
+        wasm.exports.designer_pointer_up(x, y, button, buttons);
+    }
+
+    function pointerCancel(): void {
+        wasm.exports.designer_pointer_cancel();
+    }
+
+    function pointerLeave(): void {
+        wasm.exports.designer_pointer_leave();
+    }
+
+    function getPointerDebugState(): DesignerPointerDebugState {
+        return {
+            x: wasm.exports.designer_pointer_x(),
+            y: wasm.exports.designer_pointer_y(),
+            pageX: wasm.exports.designer_pointer_page_x(),
+            pageY: wasm.exports.designer_pointer_page_y(),
+            buttons: wasm.exports.designer_pointer_buttons(),
+            isDown: wasm.exports.designer_pointer_is_down() !== 0,
+            inside: wasm.exports.designer_pointer_inside() !== 0,
+        };
+    }
+
     return {
         wasm,
         init,
@@ -83,5 +164,11 @@ export async function createEngine(): Promise<Engine> {
         getPageSize,
         getObjectCount,
         getTransform,
+        pointerDown,
+        pointerMove,
+        pointerUp,
+        pointerCancel,
+        pointerLeave,
+        getPointerDebugState,
     };
 }

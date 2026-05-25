@@ -5,9 +5,9 @@ Engine_State :: struct {
 	viewport_width:  i32,
 	viewport_height: i32,
 	frame_count:     i32,
-
-	document: Editor_Document,
-	transform: Viewport_Transform,
+	document:        Editor_Document,
+	transform:       Viewport_Transform,
+	pointer:         Pointer_State,
 }
 
 state: Engine_State
@@ -73,15 +73,71 @@ engine_pan_y :: proc() -> f32 {
 }
 
 engine_recompute_viewport_transform :: proc() {
-	canvas_size := Size{
-		width = f32(state.viewport_width),
+	canvas_size := Size {
+		width  = f32(state.viewport_width),
 		height = f32(state.viewport_height),
 	}
 
-	page_size := Size{
-		width = state.document.page.width,
+	page_size := Size {
+		width  = state.document.page.width,
 		height = state.document.page.height,
 	}
 
 	state.transform = compute_initial_viewport(canvas_size, page_size, 48.0)
+}
+
+engine_pointer_down :: proc(x, y: f32, button, buttons: i32) {
+	pointer_down(&state.pointer, x, y, button, buttons, state.transform)
+}
+
+engine_pointer_move :: proc(x, y: f32, buttons: i32) {
+	pointer_move(&state.pointer, x, y, buttons, state.transform)
+}
+
+engine_pointer_up :: proc(x, y: f32, button, buttons: i32) {
+	pointer_up(&state.pointer, x, y, button, buttons, state.transform)
+}
+
+engine_pointer_cancel :: proc() {
+	pointer_cancel(&state.pointer)
+}
+
+engine_pointer_leave :: proc() {
+	pointer_leave(&state.pointer)
+}
+
+engine_pointer_x :: proc() -> f32 {
+	return state.pointer.x
+}
+
+engine_pointer_y :: proc() -> f32 {
+	return state.pointer.y
+}
+
+engine_pointer_page_x :: proc() -> f32 {
+	return state.pointer.page_x
+}
+
+engine_pointer_page_y :: proc() -> f32 {
+	return state.pointer.page_y
+}
+
+engine_pointer_buttons :: proc() -> i32 {
+	return state.pointer.buttons
+}
+
+engine_pointer_is_down :: proc() -> i32 {
+	if state.pointer.is_down {
+		return 1
+	}
+
+	return 0
+}
+
+engine_pointer_inside :: proc() -> i32 {
+	if state.pointer.inside {
+		return 1
+	}
+
+	return 0
 }

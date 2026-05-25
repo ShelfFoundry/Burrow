@@ -69,4 +69,64 @@ designer_pan_y :: proc() -> f32 {
 	return engine_pan_y()
 }
 
+@(export)
+designer_pointer_down :: proc(x, y: f32, button, buttons: i32) {
+	engine_pointer_down(x, y, button, buttons)
+}
+
+@(export)
+designer_pointer_move :: proc(x, y: f32, buttons: i32) {
+	engine_pointer_move(x, y, buttons)
+}
+
+@(export)
+designer_pointer_up :: proc(x, y: f32, button, buttons: i32) {
+	engine_pointer_up(x, y, button, buttons)
+}
+
+@(export)
+designer_pointer_cancel :: proc() {
+	engine_pointer_cancel()
+}
+
+@(export)
+designer_pointer_leave :: proc() {
+	engine_pointer_leave()
+}
+
+@(export)
+designer_pointer_x :: proc() -> f32 {
+	return engine_pointer_x()
+}
+
+@(export)
+designer_pointer_y :: proc() -> f32 {
+	return engine_pointer_y()
+}
+
+@(export)
+designer_pointer_page_x :: proc() -> f32 {
+	return engine_pointer_page_x()
+}
+
+@(export)
+designer_pointer_page_y :: proc() -> f32 {
+	return engine_pointer_page_y()
+}
+
+@(export)
+designer_pointer_buttons :: proc() -> i32 {
+	return engine_pointer_buttons()
+}
+
+@(export)
+designer_pointer_is_down :: proc() -> i32 {
+	return engine_pointer_is_down()
+}
+
+@(export)
+designer_pointer_inside :: proc() -> i32 {
+	return engine_pointer_inside()
+}
+
 main :: proc() {}
