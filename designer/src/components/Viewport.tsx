@@ -28,6 +28,142 @@ export function Viewport(props: ViewportProps) {
   let canvasRef: HTMLCanvasElement | undefined;
   let loop: ViewportLoop | undefined;
   let engine: Engine | undefined;
+  let handleResize: EventListener | undefined;
+
+  function renderOdinFrame(canvas: HTMLCanvasElement): boolean {
+    if (!engine) {
+      return false;
+    }
+
+    engine.configureGpuSurface(canvas.width, canvas.height);
+    let ok = engine.renderDocument();
+
+    if (window.location.search.includes("debug")) dumpOdinDebugInfo(engine, canvas);
+
+    return ok;
+  }
+
+  async function startOdinRenderer(canvas: HTMLCanvasElement) {
+    engine = await createEngine();
+    if (!engine) {
+      throw new Error("Failed to create application engine");
+    }
+
+    engine.init(canvas.width, canvas.height);
+    await waitForDesignerGpuReady(engine);
+    renderOdinFrame(canvas);
+
+    handleResize = () => {
+      const resized = resizeCanvasToDisplaySize(canvas);
+
+      if (!resized) {
+        return;
+      }
+
+      engine?.resize(canvas.width, canvas.height);
+      renderOdinFrame(canvas);
+    };
+
+    window.addEventListener("resize", handleResize);
+  }
+
+  async function startPocRenderer(canvas: HTMLCanvasElement) {
+    const gpuState = await initWebGpu(canvas);
+    loop = createViewportLoop(
+      canvas,
+      gpuState,
+      props.document,
+      {
+        onSelectionChanged: (_selection, hit) => {
+          if (hit.kind === "object") {
+            props.onStatusChange(`Selected object: ${hit.object.id}: ${hit.object.name}`);
+          } else {
+            props.onStatusChange("No object selected");
+          }
+        },
+        onDocumentChanged: (event) => {
+          props.onSelectedObjectChange(event.selectedObject);
+          props.onDocumentRevisionChange?.(event.revision);
+        },
+        onInteractionHit: (hit) => {
+          if (hit.kind === "resize_handle") {
+            props.onStatusChange(`Resize handle ${hit.handleId} on object ${hit.objectId}`);
+          }
+          if (hit.kind === "object") {
+            props.onStatusChange(`Start move: object ${hit.objectId}`);
+          }
+        },
+      },
+      engine
+    );
+    loop.start();
+
+    props.onControllerReady?.({
+      setSelectionRectProperty: (property, value) => {
+        return loop?.setSelectedRectProperty(property, value) ?? false;
+      },
+      undo: () => {
+        return loop?.undo() ?? false;
+      },
+      redo: () => {
+        return loop?.redo() ?? false;
+      },
+      getDocumentRevision: () => {
+        return loop?.getDocumentRevision() ?? 0;
+      },
+      getSelectedObjectSnapshot: () => {
+        return loop?.getSelectedObjectSnapshot() ?? { kind: "none" };
+      },
+    });
+  }
+
+  function dumpOdinDebugInfo(engine: Engine, canvas: HTMLCanvasElement) {
+    const viewport = engine.getViewportSize();
+    const page = engine.getPageSize();
+    const transform = engine.getTransform();
+
+    console.groupCollapsed("Odin renderer debug");
+
+    console.group("Canvas");
+    console.table({
+      backingWidth: canvas.width,
+      backingHeight: canvas.height,
+      cssWidth: canvas.clientWidth,
+      cssHeight: canvas.clientHeight,
+      devicePixelRatio: window.devicePixelRatio,
+    });
+    console.groupEnd();
+
+    console.group("Document");
+    console.table({
+      pageWidth: page.width,
+      pageHeight: page.height,
+      objectCount: engine.getObjectCount(),
+    });
+    console.groupEnd();
+
+    console.group("Viewport transform");
+    console.table({
+      viewportWidth: viewport.width,
+      viewportHeight: viewport.height,
+      zoom: transform.zoom,
+      panX: transform.panX,
+      panY: transform.panY,
+    });
+    console.groupEnd();
+
+    console.group("GPU");
+    console.table({
+      surface: engine.hasGpuSurface(),
+      adapter: engine.hasGpuAdapter(),
+      device: engine.hasGpuDevice(),
+      queue: engine.hasGpuQueue(),
+      configured: engine.isGpuSurfaceConfigured(),
+    });
+    console.groupEnd();
+
+    console.groupEnd();
+  }
 
   onMount(async () => {
     props.onStatusChange("Viewport mounted");
@@ -39,98 +175,15 @@ export function Viewport(props: ViewportProps) {
     }
 
     try {
-
       resizeCanvasToDisplaySize(canvas);
 
       if (!location.search.includes("ts")) {
-        engine = await createEngine();
-        if (!engine) {
-          throw new Error("Failed to create application engine");
-        }
-        engine.init(canvas.width, canvas.height);
-        await waitForDesignerGpuReady(engine);
-
-        engine.configureGpuSurface(
-          canvas.width,
-          canvas.height,
-        );
-
-        engine.addRect(
-          0, 0, 100, 100,
-          { r: 0, g: 0, b: 0, a: 0 }
-        );
-
-        engine.addRect(
-          100, 100, 100, 100,
-          { r: 1, g: 0, b: 0, a: 0 }
-        );
-
-        engine.renderDocument();
-
-        window.addEventListener("resize", () => {
-          const resized = resizeCanvasToDisplaySize(canvas);
-          if (resized) {
-            engine!.resize(canvas.width, canvas.height);
-            engine!.configureGpuSurface(canvas.width, canvas.height);
-            engine!.renderDocument();
-          }
-        });
-        return;
+        await startOdinRenderer(canvas);
+      } else {
+        await startPocRenderer(canvas);
       }
 
-      const gpuState = await initWebGpu(canvas);
-
-
-      loop = createViewportLoop(
-        canvas,
-        gpuState,
-        props.document,
-        {
-          onSelectionChanged: (_selection, hit) => {
-            if (hit.kind === "object") {
-              props.onStatusChange(`Selected object: ${hit.object.id}: ${hit.object.name}`);
-            } else {
-              props.onStatusChange("No object selected");
-            }
-          },
-          onDocumentChanged: (event) => {
-            props.onSelectedObjectChange(event.selectedObject);
-            props.onDocumentRevisionChange?.(event.revision);
-          },
-          onInteractionHit: (hit) => {
-            if (hit.kind === "resize_handle") {
-              props.onStatusChange(`Resize handle ${hit.handleId} on object ${hit.objectId}`);
-            }
-            if (hit.kind === "object") {
-              props.onStatusChange(`Start move: object ${hit.objectId}`);
-            }
-          },
-        },
-        engine
-      );
-      loop.start();
-
-      props.onControllerReady?.({
-        setSelectionRectProperty: (property, value) => {
-          return loop?.setSelectedRectProperty(property, value) ?? false;
-        },
-        undo: () => {
-          return loop?.undo() ?? false;
-        },
-        redo: () => {
-          return loop?.redo() ?? false;
-        },
-        getDocumentRevision: () => {
-          return loop?.getDocumentRevision() ?? 0;
-        },
-        getSelectedObjectSnapshot: () => {
-          return loop?.getSelectedObjectSnapshot() ?? { kind: "none" };
-        },
-      });
-
-      props.onStatusChange(
-        `Odin engine initialized=${initialized}. Page=${pageSize.width}×${pageSize.height}. Objects=${objectCount}. WebGPU format=${gpuState.format}`,
-      );
+      props.onStatusChange("Ready");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown viewport error";
       props.onStatusChange(`Viewport failed: ${message}`);
@@ -155,6 +208,7 @@ export function Viewport(props: ViewportProps) {
 
   onCleanup(() => {
     loop?.stop();
+    if (handleResize) window.removeEventListener("resize", handleResize);
   });
 
   function toViewportPointerEvent(

@@ -1,3 +1,7 @@
+// WARN: Odin vendor/wgpu currently decodes several u64 descriptor fields as BigInt.
+// Browser WebGPU expects number for these descriptor properties.
+// We will patch these fields within this file until the upstream wrapper handles conversion internally.
+
 (function() {
 
 const STATUS_SUCCESS = 1;
