@@ -138,26 +138,6 @@ designer_gpu_is_initialized :: proc() -> i32 {
 }
 
 @(export)
-designer_gpu_clear_r :: proc() -> f64 {
-	return engine_gpu_clear_r()
-}
-
-@(export)
-designer_gpu_clear_g :: proc() -> f64 {
-	return engine_gpu_clear_g()
-}
-
-@(export)
-designer_gpu_clear_b :: proc() -> f64 {
-	return engine_gpu_clear_b()
-}
-
-@(export)
-designer_gpu_clear_a :: proc() -> f64 {
-	return engine_gpu_clear_a()
-}
-
-@(export)
 designer_gpu_clear_frame :: proc() -> i32 {
 	if engine_gpu_clear_frame() {
 		return 1
@@ -200,6 +180,24 @@ designer_gpu_has_queue :: proc() -> i32 {
 	}
 
 	return 0
+}
+
+@(export)
+designer_gpu_configure_surface :: proc(width: i32, height: i32) -> i32 {
+    if engine_gpu_configure_surface(width, height) {
+        return 1
+    }
+
+    return 0
+}
+
+@(export)
+designer_gpu_surface_configured :: proc() -> i32 {
+    if engine_gpu_surface_configured() {
+        return 1
+    }
+
+    return 0
 }
 
 main :: proc() {}

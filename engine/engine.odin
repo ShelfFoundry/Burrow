@@ -148,22 +148,6 @@ engine_gpu_is_initialized :: proc() -> bool {
 	return gpu_is_initialized(&state.gpu)
 }
 
-engine_gpu_clear_r :: proc() -> f64 {
-	return state.gpu.clear_r
-}
-
-engine_gpu_clear_g :: proc() -> f64 {
-	return state.gpu.clear_g
-}
-
-engine_gpu_clear_b :: proc() -> f64 {
-	return state.gpu.clear_b
-}
-
-engine_gpu_clear_a :: proc() -> f64 {
-	return state.gpu.clear_a
-}
-
 engine_gpu_clear_frame :: proc() -> bool {
 	return gpu_clear_frame(&state.gpu)
 }
@@ -182,4 +166,12 @@ engine_gpu_has_device :: proc() -> bool {
 
 engine_gpu_has_queue :: proc() -> bool {
 	return gpu_has_queue(&state.gpu)
+}
+
+engine_gpu_configure_surface :: proc(width, height: i32) -> bool {
+	return gpu_configure_surface(&state.gpu, width, height)
+}
+
+engine_gpu_surface_configured :: proc() -> bool {
+	return state.gpu.surface_configured
 }

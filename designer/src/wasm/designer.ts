@@ -50,16 +50,14 @@ export type DesignerWasmExports = {
     designer_pointer_is_down: () => number;
     designer_pointer_inside: () => number;
 
-    designer_gpu_clear_r: () => number;
-    designer_gpu_clear_g: () => number;
-    designer_gpu_clear_b: () => number;
-    designer_gpu_clear_a: () => number;
-
     designer_gpu_clear_frame: () => number;
+
     designer_gpu_has_surface: () => number;
     designer_gpu_has_adapter: () => number;
     designer_gpu_has_device: () => number;
     designer_gpu_has_queue: () => number;
+    designer_gpu_configure_surface: (width: number, height: number) => number;
+    designer_gpu_surface_configured: () => number;
 
     wgpu_alloc: (size: number) => number;
     wgpu_free: (ptr: number) => void;
@@ -81,10 +79,15 @@ type OdinWasmMemoryInterface = {
     loadU64: (ptr: number) => bigint;
     loadUint: (ptr: number) => number;
     loadB32: (ptr: number) => boolean;
+    loadF32: (ptr: number) => number;
+    loadF64: (ptr: number) => number;
+    storeF32: (ptr: number, value: number) => void;
+    storeF64: (ptr: number, value: number) => void;
 
     storeI32: (ptr: number, value: number) => void;
     storeUint: (ptr: number, value: number) => void;
     storeString: (ptr: number, value: string) => void;
+    storePtr: (ptr: number, value: number) => void;
 
     loadString: (ptr: number, length: number) => string;
     loadBytes: (ptr: number, length: number) => Uint8Array;
@@ -119,7 +122,7 @@ export async function loadDesignerWasm(): Promise<DesignerWasm> {
 
     const result = await WebAssembly.instantiateStreaming(fetch("/designer.wasm"), env);
     const exports = result.instance.exports as unknown as DesignerWasmExports;
-    memoryBridge.exports = exports;
+    memoryBridge.exports = exports; 
 
     return {
         exports,
@@ -166,6 +169,10 @@ function createMutableOdinMemoryBridge(): OdinWasmMemoryInterface {
         // js_wasm32 uses 32-bit pointers.
         intSize: 4,
 
+        storePtr(ptr: number, value: number): void {
+            view().setUint32(ptr, value, true);
+        },
+
         loadPtr(ptr: number): number {
             return view().getUint32(ptr, true);
         },
@@ -188,6 +195,22 @@ function createMutableOdinMemoryBridge(): OdinWasmMemoryInterface {
 
         loadB32(ptr: number): boolean {
             return view().getUint32(ptr, true) !== 0;
+        },
+
+        loadF32(ptr: number): number {
+            return view().getFloat32(ptr, true);
+        },
+
+        loadF64(ptr: number): number {
+            return view().getFloat64(ptr, true);
+        },
+
+        storeF32(ptr: number, value: number): void {
+            view().setFloat32(ptr, value, true);
+        },
+
+        storeF64(ptr: number, value: number): void {
+            view().setFloat64(ptr, value, true);
         },
 
         storeI32(ptr: number, value: number): void {

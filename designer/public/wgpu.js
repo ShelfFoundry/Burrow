@@ -3114,7 +3114,7 @@ class WebGPUInterface {
 
 				const device = this.devices.get(this.mem.loadPtr(off(4)));
 				const format = this.enumeration("TextureFormat", off(4));
-				const usage = this.mem.loadU64(off(8));
+				const usage = Number(this.mem.loadU64(off(8)));
 				const width = this.mem.loadU32(off(4));
 				const height = this.mem.loadU32(off(4));
 		                const viewFormats = this.array(

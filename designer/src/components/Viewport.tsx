@@ -39,21 +39,25 @@ export function Viewport(props: ViewportProps) {
     }
 
     try {
-      const gpuState = await initWebGpu(canvas);
+      //const gpuState = await initWebGpu(canvas);
 
       resizeCanvasToDisplaySize(canvas);
 
       engine = await createEngine();
       const initialized = engine.init(canvas.width, canvas.height);
       const gpuReady = await waitForDesignerGpuReady(engine);
+
+      const configured = engine.configureGpuSurface(
+        canvas.width,
+        canvas.height,
+      );
+
+      const cleared = engine.clearFrame();
+      return;
+
       const pageSize = engine.getPageSize();
       const objectCount = engine.getObjectCount();
-      console.log("Engine initialized", initialized);
-      console.log("Gpu ready", gpuReady);
-      console.log("Has adapter", engine.hasGpuAdapter());
-      console.log("Has device", engine.hasGpuDevice());
-      console.log("Has queue", engine.hasGpuQueue());
-      console.log("Has surface", engine.hasGpuSurface());
+
 
       loop = createViewportLoop(
         canvas,

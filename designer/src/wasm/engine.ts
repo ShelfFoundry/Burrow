@@ -63,14 +63,15 @@ export type Engine = {
 
     getPointerDebugState: () => DesignerPointerDebugState;
 
-    isGpuInitializeid: () => boolean;
-    getClearColor: () => ClearColor;
     clearFrame: () => boolean;
 
+    isGpuInitializeid: () => boolean;
     hasGpuSurface: () => boolean;
     hasGpuAdapter: () => boolean;
     hasGpuDevice: () => boolean;
     hasGpuQueue: () => boolean;
+    configureGpuSurface: (width: number, height: number) => boolean;
+    isGpuSurfaceConfigured: () => boolean;
 };
 
 export async function createEngine(): Promise<Engine> {
@@ -166,16 +167,7 @@ export async function createEngine(): Promise<Engine> {
 
     function isGpuInitializeid(): boolean {
         return wasm.exports.designer_gpu_is_initialized() !== 0;
-    }
-
-    function getClearColor() {
-        return {
-            r: wasm.exports.designer_gpu_clear_r(),
-            g: wasm.exports.designer_gpu_clear_g(),
-            b: wasm.exports.designer_gpu_clear_b(),
-            a: wasm.exports.designer_gpu_clear_a(),
-        };
-    }
+    } 
 
     function clearFrame(): boolean {
         return wasm.exports.designer_gpu_clear_frame() !== 0;
@@ -197,6 +189,14 @@ export async function createEngine(): Promise<Engine> {
         return wasm.exports.designer_gpu_has_queue() !== 0;
     }
 
+    function configureGpuSurface(width: number, height: number): boolean {
+        return wasm.exports.designer_gpu_configure_surface(width, height) !== 0;
+    }
+
+    function isGpuSurfaceConfigured(): boolean {
+        return wasm.exports.designer_gpu_surface_configured() !== 0;
+    }
+
     return {
         wasm,
         init,
@@ -214,12 +214,13 @@ export async function createEngine(): Promise<Engine> {
         pointerLeave,
         getPointerDebugState,
         isGpuInitializeid,
-        getClearColor,
         clearFrame,
         hasGpuSurface,
         hasGpuAdapter,
         hasGpuDevice,
         hasGpuQueue,
+        configureGpuSurface,
+        isGpuSurfaceConfigured,
     };
 }
 
