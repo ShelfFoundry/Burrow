@@ -436,28 +436,17 @@ gpu_render_document :: proc(
 	for i in 0 ..< document.object_count {
 		object := document.objects[i]
 
-		if object.kind == .Rect && object.rect.fill_enabled {
-			rect_page := Rect {
-				x      = object.rect.x,
-				y      = object.rect.y,
-				width  = object.rect.width,
-				height = object.rect.height,
-			}
+		ok = gpu_push_rect_object_vertices(
+			raw_data(vertices[:]),
+			&vertex_count,
+			object,
+			transform,
+			viewport_width,
+			viewport_height,
+		)
 
-			rect_screen := page_rect_to_screen(rect_page, transform)
-
-			ok = gpu_push_rect_vertices(
-				raw_data(vertices[:]),
-				&vertex_count,
-				rect_screen,
-				rgba_to_vertex_color(object.rect.fill),
-				viewport_width,
-				viewport_height,
-			)
-
-			if !ok {
-				return false
-			}
+		if !ok {
+			return false
 		}
 	}
 
@@ -651,6 +640,40 @@ gpu_build_rect_vertices :: proc(
 		position = bottom_right,
 		color    = color,
 	}
+}
+
+gpu_push_rect_object_vertices :: proc(
+	vertices: [^]Vertex,
+	vertex_count: ^int,
+	object: Editor_Object,
+	transform: Viewport_Transform,
+	viewport_width, viewport_height: f32,
+) -> bool {
+	if object.kind != .Rect {
+		return true
+	}
+
+	if !object.rect.fill_enabled {
+		return true
+	}
+
+	rect_page := Rect {
+		x      = object.rect.x,
+		y      = object.rect.y,
+		width  = object.rect.width,
+		height = object.rect.height,
+	}
+
+	rect_screen := page_rect_to_screen(rect_page, transform)
+
+	return gpu_push_rect_vertices(
+		vertices,
+		vertex_count,
+		rect_screen,
+		rgba_to_vertex_color(object.rect.fill),
+		viewport_width,
+		viewport_height,
+	)
 }
 
 gpu_push_rect_vertices :: proc(
