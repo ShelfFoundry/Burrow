@@ -44,6 +44,9 @@ export function Viewport(props: ViewportProps) {
 
       if (!location.search.includes("ts")) {
         engine = await createEngine();
+        if (!engine) {
+          throw new Error("Failed to create application engine");
+        }
         engine.init(canvas.width, canvas.height);
         await waitForDesignerGpuReady(engine);
 
@@ -52,14 +55,14 @@ export function Viewport(props: ViewportProps) {
           canvas.height,
         );
 
-        engine.renderEmptyPage();
+        engine.renderDocument();
 
         window.addEventListener("resize", () => {
           const resized = resizeCanvasToDisplaySize(canvas);
           if (resized) {
-            engine?.resize(canvas.width, canvas.height);
-            engine?.configureGpuSurface(canvas.width, canvas.height);
-            engine?.renderEmptyPage();
+            engine!.resize(canvas.width, canvas.height);
+            engine!.configureGpuSurface(canvas.width, canvas.height);
+            engine!.renderDocument();
           }
         });
         return;

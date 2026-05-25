@@ -6,6 +6,10 @@ import wgpu "vendor:wgpu"
 PAGE_SHADER_BYTES :: #load("page.wgsl")
 PAGE_SHADER :: string(PAGE_SHADER_BYTES)
 
+MAX_RENDER_RECTS :: 256
+VERTICES_PER_RECT :: 6
+MAX_RECT_VERTICES :: MAX_RENDER_RECTS * VERTICES_PER_RECT
+
 Gpu_State :: struct {
 	initialized:             bool,
 	has_surface:             bool,
@@ -21,10 +25,7 @@ Gpu_State :: struct {
 	queue:                   wgpu.Queue,
 	surface:                 wgpu.Surface,
 	format:                  wgpu.TextureFormat,
-	clear_r:                 f64,
-	clear_g:                 f64,
-	clear_b:                 f64,
-	clear_a:                 f64,
+	clear_color:             RGBA,
 	page_pipeline_ready:     bool,
 	page_pipeline:           wgpu.RenderPipeline,
 	page_vertex_buffer:      wgpu.Buffer,
@@ -35,12 +36,12 @@ Vertex :: struct {
 	color:    [4]f32,
 }
 
-gpu_create_page_vertex_buffer :: proc(gpu: ^Gpu_State) -> bool {
+gpu_create_rect_vertex_buffer :: proc(gpu: ^Gpu_State) -> bool {
 	if gpu == nil || gpu.device == nil {
 		return false
 	}
 
-	buffer_size := u64(size_of(Vertex) * 6)
+	buffer_size := u64(size_of(Vertex) * MAX_RECT_VERTICES)
 
 	descriptor := wgpu.BufferDescriptor {
 		label            = "page vertex buffer",
@@ -152,43 +153,9 @@ gpu_build_page_vertices :: proc(
 	page_rect: Rect,
 	viewport_width, viewport_height: f32,
 ) {
-	x0 := page_rect.x
-	y0 := page_rect.y
-	x1 := page_rect.x + page_rect.width
-	y1 := page_rect.y + page_rect.height
-
 	white := [4]f32{1.0, 1.0, 1.0, 1.0}
 
-	top_left := screen_to_clip(x0, y0, viewport_width, viewport_height)
-	top_right := screen_to_clip(x1, y0, viewport_width, viewport_height)
-	bottom_left := screen_to_clip(x0, y1, viewport_width, viewport_height)
-	bottom_right := screen_to_clip(x1, y1, viewport_width, viewport_height)
-
-	vertices[0] = Vertex {
-		position = top_left,
-		color    = white,
-	}
-	vertices[1] = Vertex {
-		position = bottom_left,
-		color    = white,
-	}
-	vertices[2] = Vertex {
-		position = top_right,
-		color    = white,
-	}
-
-	vertices[3] = Vertex {
-		position = top_right,
-		color    = white,
-	}
-	vertices[4] = Vertex {
-		position = bottom_left,
-		color    = white,
-	}
-	vertices[5] = Vertex {
-		position = bottom_right,
-		color    = white,
-	}
+	gpu_build_rect_vertices(vertices, page_rect, white, viewport_width, viewport_height)
 }
 
 gpu_request_adapter_callback :: proc "c" (
@@ -316,10 +283,12 @@ gpu_create_surface_from_selector :: proc(
 gpu_init :: proc(gpu: ^Gpu_State) -> bool {
 	gpu.initialized = false
 
-	gpu.clear_r = 0.16
-	gpu.clear_g = 0.17
-	gpu.clear_b = 0.18
-	gpu.clear_a = 1.0
+	gpu.clear_color = RGBA {
+		r = 0.16,
+		g = 0.17,
+		b = 0.18,
+		a = 1.0,
+	}
 
 	gpu.instance = wgpu.CreateInstance(nil)
 
@@ -386,7 +355,7 @@ gpu_configure_surface :: proc(gpu: ^Gpu_State, width, height: i32) -> bool {
 	}
 
 	if gpu.page_vertex_buffer == nil {
-		if !gpu_create_page_vertex_buffer(gpu) {
+		if !gpu_create_rect_vertex_buffer(gpu) {
 			return false
 		}
 	}
@@ -425,9 +394,10 @@ gpu_is_ready_to_render :: proc(gpu: ^Gpu_State) -> bool {
 	)
 }
 
-gpu_render_empty_page :: proc(
+gpu_render_document :: proc(
 	gpu: ^Gpu_State,
-	page_rect: Rect,
+	document: ^Editor_Document,
+	transform: Viewport_Transform,
 	viewport_width, viewport_height: f32,
 ) -> bool {
 	if !gpu_is_ready_to_render(gpu) {
@@ -438,25 +408,73 @@ gpu_render_empty_page :: proc(
 		return false
 	}
 
-	vertices: [6]Vertex
-	gpu_build_page_vertices(&vertices, page_rect, viewport_width, viewport_height)
+	vertices: [MAX_RECT_VERTICES]Vertex
+	vertex_count := 0
 
-	wgpu.QueueWriteBuffer(
-		gpu.queue,
-		gpu.page_vertex_buffer,
-		0,
+	page_rect_page := Rect {
+		x      = 0.0,
+		y      = 0.0,
+		width  = document.page.width,
+		height = document.page.height,
+	}
+
+	page_rect_screen := page_rect_to_screen(page_rect_page, transform)
+
+	ok := gpu_push_rect_vertices(
 		raw_data(vertices[:]),
-		size_of(Vertex) * len(vertices),
+		&vertex_count,
+		page_rect_screen,
+		[4]f32{1.0, 1.0, 1.0, 1.0},
+		viewport_width,
+		viewport_height,
 	)
 
-	surface_texture := wgpu.SurfaceGetCurrentTexture(gpu.surface)
+	if !ok {
+		return false
+	}
 
+	for i in 0 ..< document.object_count {
+		object := document.objects[i]
+
+		if object.kind == .Rect && object.rect.fill_enabled {
+			rect_page := Rect {
+				x      = object.rect.x,
+				y      = object.rect.y,
+				width  = object.rect.width,
+				height = object.rect.height,
+			}
+
+			rect_screen := page_rect_to_screen(rect_page, transform)
+
+			ok = gpu_push_rect_vertices(
+				raw_data(vertices[:]),
+				&vertex_count,
+				rect_screen,
+				rgba_to_vertex_color(object.rect.fill),
+				viewport_width,
+				viewport_height,
+			)
+
+			if !ok {
+				return false
+			}
+		}
+	}
+
+	data_size := uint(size_of(Vertex) * vertex_count)
+
+	wgpu.QueueWriteBuffer(gpu.queue, gpu.page_vertex_buffer, 0, raw_data(vertices[:]), data_size)
+
+	return gpu_draw_vertices(gpu, u32(vertex_count))
+}
+
+gpu_draw_vertices :: proc(gpu: ^Gpu_State, vertex_count: u32) -> bool {
+	surface_texture := wgpu.SurfaceGetCurrentTexture(gpu.surface)
 	if surface_texture.texture == nil {
 		return false
 	}
 
 	texture_view := wgpu.TextureCreateView(surface_texture.texture, nil)
-
 	if texture_view == nil {
 		return false
 	}
@@ -467,7 +485,7 @@ gpu_render_empty_page :: proc(
 		resolveTarget = nil,
 		loadOp        = .Clear,
 		storeOp       = .Store,
-		clearValue    = [4]f64{gpu.clear_r, gpu.clear_g, gpu.clear_b, gpu.clear_a},
+		clearValue    = rgba_to_vertex_color_f64(gpu.clear_color),
 	}
 
 	render_pass_descriptor := wgpu.RenderPassDescriptor {
@@ -476,18 +494,15 @@ gpu_render_empty_page :: proc(
 	}
 
 	encoder := wgpu.DeviceCreateCommandEncoder(gpu.device, nil)
-
 	if encoder == nil {
 		wgpu.TextureViewRelease(texture_view)
 		return false
 	}
 
 	pass := wgpu.CommandEncoderBeginRenderPass(encoder, &render_pass_descriptor)
-
 	if pass == nil {
 		wgpu.CommandEncoderRelease(encoder)
 		wgpu.TextureViewRelease(texture_view)
-		return false
 	}
 
 	wgpu.RenderPassEncoderSetPipeline(pass, gpu.page_pipeline)
@@ -497,15 +512,14 @@ gpu_render_empty_page :: proc(
 		0,
 		gpu.page_vertex_buffer,
 		0,
-		u64(size_of(Vertex) * 6),
+		u64(size_of(Vertex) * int(vertex_count)),
 	)
 
-	wgpu.RenderPassEncoderDraw(pass, 6, 1, 0, 0)
+	wgpu.RenderPassEncoderDraw(pass, vertex_count, 1, 0, 0)
 
 	wgpu.RenderPassEncoderEnd(pass)
 
 	command_buffer := wgpu.CommandEncoderFinish(encoder, nil)
-
 	if command_buffer == nil {
 		wgpu.RenderPassEncoderRelease(pass)
 		wgpu.CommandEncoderRelease(encoder)
@@ -549,7 +563,7 @@ gpu_clear_frame :: proc(gpu: ^Gpu_State) -> bool {
 		resolveTarget = nil,
 		loadOp        = .Clear,
 		storeOp       = .Store,
-		clearValue    = [4]f64{gpu.clear_r, gpu.clear_g, gpu.clear_b, gpu.clear_a},
+		clearValue    = rgba_to_vertex_color_f64(gpu.clear_color),
 	}
 
 	render_pass_descriptor := wgpu.RenderPassDescriptor {
@@ -594,4 +608,81 @@ gpu_clear_frame :: proc(gpu: ^Gpu_State) -> bool {
 	wgpu.TextureViewRelease(texture_view)
 
 	return true
+}
+
+gpu_build_rect_vertices :: proc(
+	vertices: ^[6]Vertex,
+	rect: Rect,
+	color: [4]f32,
+	viewport_width, viewport_height: f32,
+) {
+	x0 := rect.x
+	y0 := rect.y
+	x1 := rect.x + rect.width
+	y1 := rect.y + rect.height
+
+	top_left := screen_to_clip(x0, y0, viewport_width, viewport_height)
+	top_right := screen_to_clip(x1, y0, viewport_width, viewport_height)
+	bottom_left := screen_to_clip(x0, y1, viewport_width, viewport_height)
+	bottom_right := screen_to_clip(x1, y1, viewport_width, viewport_height)
+
+	vertices[0] = Vertex {
+		position = top_left,
+		color    = color,
+	}
+	vertices[1] = Vertex {
+		position = bottom_left,
+		color    = color,
+	}
+	vertices[2] = Vertex {
+		position = top_right,
+		color    = color,
+	}
+
+	vertices[3] = Vertex {
+		position = top_right,
+		color    = color,
+	}
+	vertices[4] = Vertex {
+		position = bottom_left,
+		color    = color,
+	}
+	vertices[5] = Vertex {
+		position = bottom_right,
+		color    = color,
+	}
+}
+
+gpu_push_rect_vertices :: proc(
+	vertices: [^]Vertex,
+	vertex_count: ^int,
+	rect: Rect,
+	color: [4]f32,
+	viewport_width, viewport_height: f32,
+) -> bool {
+	if vertex_count^ + 6 > MAX_RECT_VERTICES {
+		return false
+	}
+
+	local_vertices: [6]Vertex
+
+	gpu_build_rect_vertices(&local_vertices, rect, color, viewport_width, viewport_height)
+
+	base := vertex_count^
+
+	for i in 0 ..< 6 {
+		vertices[base + i] = local_vertices[i]
+	}
+
+	vertex_count^ += 6
+
+	return true
+}
+
+rgba_to_vertex_color :: proc(color: RGBA) -> [4]f32 {
+	return [4]f32{color.r, color.g, color.b, color.a}
+}
+
+rgba_to_vertex_color_f64 :: proc(color: RGBA) -> [4]f64 {
+	return [4]f64{f64(color.r), f64(color.g), f64(color.b), f64(color.a)}
 }

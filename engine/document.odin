@@ -67,6 +67,8 @@ document_init_blank :: proc(document: ^Editor_Document, page_width, page_height:
     document.page.width = page_width
     document.page.height = page_height
     document.object_count = 0
+
+	document_add_sample_rect(document)
 }
 
 document_object_count :: proc(document: ^Editor_Document) -> i32 {
@@ -79,4 +81,33 @@ document_page_width :: proc(document: ^Editor_Document) -> f32 {
 
 document_page_height :: proc(document: ^Editor_Document) -> f32 {
     return document.page.height
+}
+
+document_add_sample_rect :: proc(document: ^Editor_Document) {
+	if document.object_count >= MAX_OBJECTS {
+		return
+	}
+
+	index := document.object_count
+
+	document.objects[index] = Editor_Object {
+		id = Object_Id(1),
+		kind = .Rect,
+		name_id = 1,
+		rect = Rect_Object {
+			x = 72.0,
+			y = 72.0,
+			width = 180.0,
+			height = 120.0,
+			fill_enabled = true,
+			fill = RGBA {
+				r = 0.90,
+				g = 0.15,
+				b = 0.15,
+				a = 1.0
+			},
+			stroke_enabled = false,
+		}
+	}
+	document.object_count += 1
 }

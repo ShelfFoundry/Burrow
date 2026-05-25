@@ -148,19 +148,11 @@ engine_gpu_is_initialized :: proc() -> bool {
 	return gpu_is_initialized(&state.gpu)
 }
 
-engine_render_empty_page :: proc() -> bool {
-	page_rect_page := Rect {
-		x      = 0.0,
-		y      = 0.0,
-		width  = state.document.page.width,
-		height = state.document.page.height,
-	}
-
-	page_rect_screen := page_rect_to_screen(page_rect_page, state.transform)
-
-	return gpu_render_empty_page(
+engine_render_document :: proc() -> bool {
+	return gpu_render_document(
 		&state.gpu,
-		page_rect_screen,
+		&state.document,
+		state.transform,
 		f32(state.viewport_width),
 		f32(state.viewport_height),
 	)

@@ -64,7 +64,7 @@ export type Engine = {
     getPointerDebugState: () => DesignerPointerDebugState;
 
     clearFrame: () => boolean;
-    renderEmptyPage: () => boolean;
+    renderDocument: () => boolean;
 
     isGpuInitializeid: () => boolean;
     hasGpuSurface: () => boolean;
@@ -178,8 +178,8 @@ export async function createEngine(): Promise<Engine> {
         return wasm.exports.designer_gpu_clear_frame() !== 0;
     }
 
-    function renderEmptyPage(): boolean {
-        return wasm.exports.designer_render_empty_page() !== 0;
+    function renderDocument(): boolean {
+        return wasm.exports.designer_render_document() !== 0;
     }
 
     function hasGpuSurface(): boolean {
@@ -231,7 +231,7 @@ export async function createEngine(): Promise<Engine> {
         hasGpuQueue,
         configureGpuSurface,
         isGpuSurfaceConfigured,
-        renderEmptyPage,
+        renderDocument,
     };
 }
 
