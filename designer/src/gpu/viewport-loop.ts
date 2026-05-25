@@ -19,6 +19,7 @@ import { applyMoveDrag, applyResizeDrag, createIdleDragState, createMoveDragStat
 import { commitCommand, createEditorHistory, redo, undo, type EditorHistory } from "../editor/history";
 import { createReplaceObjectCommand, createReplaceObjectCommandFromObjects } from "../editor/edit-command";
 import { replaceObjectById, setRectObjectPropery } from "../editor/object-mutations";
+import type { Engine } from "../wasm/engine";
 
 export type ViewportPointerEventKind =
     | "pointer_down"
@@ -100,6 +101,7 @@ export function createViewportLoop(
     gpuState: WebGpuState,
     document: EditorDocument,
     callbacks: ViewportLoopCallbacks = {},
+    engine?: Engine,
 ): ViewportLoop {
     let animationFrameId = 0;
     let running = false;
@@ -473,11 +475,16 @@ export function createViewportLoop(
 
         const resized = resizeCanvasToDisplaySize(canvas);
         if (resized) {
-            dirty = true;
+            resetViewToFitPage();
         }
 
         if (dirty) {
-            const frameState = beginFrame(gpuState);
+            const frameState = beginFrame(gpuState, {
+                r: 0.16,
+                g: 0.17,
+                b: 0.18,
+                a: 1.0
+            });
 
             const pageRects = pageRenderer.buildRects({
                 document,

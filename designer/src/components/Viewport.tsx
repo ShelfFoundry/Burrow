@@ -1,8 +1,9 @@
 import { onCleanup, onMount } from "solid-js";
-import { initWebGpu } from "../gpu/webgpu";
+import { initWebGpu, resizeCanvasToDisplaySize } from "../gpu/webgpu";
 import { createViewportLoop, type ViewportLoop, type ViewportPointerEventKind } from "../gpu/viewport-loop";
 import type { EditorDocument } from "../editor/document";
 import type { RectEditableProperty, SelectedObjectSnapshot } from "../editor/selection";
+import { createEngine, waitForDesignerGpuReady, type Engine } from "../wasm/engine";
 
 export type ViewportController = {
   setSelectionRectProperty: (
@@ -26,6 +27,7 @@ type ViewportProps = {
 export function Viewport(props: ViewportProps) {
   let canvasRef: HTMLCanvasElement | undefined;
   let loop: ViewportLoop | undefined;
+  let engine: Engine | undefined;
 
   onMount(async () => {
     props.onStatusChange("Viewport mounted");
@@ -37,28 +39,75 @@ export function Viewport(props: ViewportProps) {
     }
 
     try {
+
+      resizeCanvasToDisplaySize(canvas);
+
+      if (!location.search.includes("ts")) {
+        engine = await createEngine();
+        if (!engine) {
+          throw new Error("Failed to create application engine");
+        }
+        engine.init(canvas.width, canvas.height);
+        await waitForDesignerGpuReady(engine);
+
+        engine.configureGpuSurface(
+          canvas.width,
+          canvas.height,
+        );
+
+        engine.addRect(
+          0, 0, 100, 100,
+          { r: 0, g: 0, b: 0, a: 0 }
+        );
+
+        engine.addRect(
+          100, 100, 100, 100,
+          { r: 1, g: 0, b: 0, a: 0 }
+        );
+
+        engine.renderDocument();
+
+        window.addEventListener("resize", () => {
+          const resized = resizeCanvasToDisplaySize(canvas);
+          if (resized) {
+            engine!.resize(canvas.width, canvas.height);
+            engine!.configureGpuSurface(canvas.width, canvas.height);
+            engine!.renderDocument();
+          }
+        });
+        return;
+      }
+
       const gpuState = await initWebGpu(canvas);
-      loop = createViewportLoop(canvas, gpuState, props.document, {
-        onSelectionChanged: (_selection, hit) => {
-          if (hit.kind === "object") {
-            props.onStatusChange(`Selected object: ${hit.object.id}: ${hit.object.name}`);
-          } else {
-            props.onStatusChange("No object selected");
-          }
+
+
+      loop = createViewportLoop(
+        canvas,
+        gpuState,
+        props.document,
+        {
+          onSelectionChanged: (_selection, hit) => {
+            if (hit.kind === "object") {
+              props.onStatusChange(`Selected object: ${hit.object.id}: ${hit.object.name}`);
+            } else {
+              props.onStatusChange("No object selected");
+            }
+          },
+          onDocumentChanged: (event) => {
+            props.onSelectedObjectChange(event.selectedObject);
+            props.onDocumentRevisionChange?.(event.revision);
+          },
+          onInteractionHit: (hit) => {
+            if (hit.kind === "resize_handle") {
+              props.onStatusChange(`Resize handle ${hit.handleId} on object ${hit.objectId}`);
+            }
+            if (hit.kind === "object") {
+              props.onStatusChange(`Start move: object ${hit.objectId}`);
+            }
+          },
         },
-        onDocumentChanged: (event) => {
-          props.onSelectedObjectChange(event.selectedObject);
-          props.onDocumentRevisionChange?.(event.revision);
-        },
-        onInteractionHit: (hit) => {
-          if (hit.kind === "resize_handle") {
-            props.onStatusChange(`Resize handle ${hit.handleId} on object ${hit.objectId}`);
-          }
-          if (hit.kind === "object") {
-            props.onStatusChange(`Start move: object ${hit.objectId}`);
-          }
-        },
-      });
+        engine
+      );
       loop.start();
 
       props.onControllerReady?.({
@@ -80,11 +129,11 @@ export function Viewport(props: ViewportProps) {
       });
 
       props.onStatusChange(
-        `WebGPU loop running. Page: ${props.document.page.width}×${props.document.page.height}. Objects: ${props.document.objects.length}. Format: ${gpuState.format}`,
+        `Odin engine initialized=${initialized}. Page=${pageSize.width}×${pageSize.height}. Objects=${objectCount}. WebGPU format=${gpuState.format}`,
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown WebGPU error";
-      props.onStatusChange(`WebGPU failed: ${message}`);
+      const message = error instanceof Error ? error.message : "Unknown viewport error";
+      props.onStatusChange(`Viewport failed: ${message}`);
     }
 
     window.addEventListener("keydown", (event) => {
@@ -147,6 +196,7 @@ export function Viewport(props: ViewportProps) {
   return (
     <section class="viewport-panel">
       <canvas
+        id="designer-canvas"
         ref={canvasRef}
         class="viewport-canvas"
         tabindex={0}
@@ -155,38 +205,64 @@ export function Viewport(props: ViewportProps) {
           if (!canvas) return;
 
           canvas.setPointerCapture(event.pointerId);
-          loop?.handlePointerEvent(toViewportPointerEvent("pointer_down", canvas, event));
+          const viewportEvent = toViewportPointerEvent("pointer_down", canvas, event);
+
+          engine?.pointerDown(
+            viewportEvent.x,
+            viewportEvent.y,
+            viewportEvent.button,
+            viewportEvent.buttons,
+          );
+
+          loop?.handlePointerEvent(viewportEvent);
         }}
         onPointerMove={(event) => {
           const canvas = canvasRef;
           if (!canvas) return;
 
-          loop?.handlePointerEvent(toViewportPointerEvent("pointer_move", canvas, event));
+          const viewportEvent = toViewportPointerEvent("pointer_move", canvas, event);
+
+          engine?.pointerMove(
+            viewportEvent.x,
+            viewportEvent.y,
+            viewportEvent.buttons,
+          );
+
+          loop?.handlePointerEvent(viewportEvent);
         }}
         onPointerUp={(event) => {
           const canvas = canvasRef;
           if (!canvas) return;
 
-          loop?.handlePointerEvent(toViewportPointerEvent("pointer_up", canvas, event));
+          const viewportEvent = toViewportPointerEvent("pointer_up", canvas, event);
 
-          const pointer = loop?.getPointerState();
+          engine?.pointerUp(
+            viewportEvent.x,
+            viewportEvent.y,
+            viewportEvent.button,
+            viewportEvent.buttons
+          );
 
-          if (pointer) {
-            props.onStatusChange(`Screen: ${pointer.x.toFixed(0)}, ${pointer.y.toFixed(0)} | Page: ${pointer.pageX.toFixed(1)}, ${pointer.pageY.toFixed(1)}`);
+          loop?.handlePointerEvent(viewportEvent);
+
+          if (canvas.hasPointerCapture(event.pointerId)) {
+            canvas.releasePointerCapture(event.pointerId);
           }
         }}
         onPointerCancel={(event) => {
           const canvas = canvasRef;
           if (!canvas) return;
-          loop?.handlePointerEvent(toViewportPointerEvent("pointer_cancel", canvas, event));
+          const viewportEvent = toViewportPointerEvent("pointer_cancel", canvas, event);
+          engine?.pointerCancel();
+          loop?.handlePointerEvent(viewportEvent);
           if (canvas.hasPointerCapture(event.pointerId)) {
             canvas.releasePointerCapture(event.pointerId);
           }
-          props.onStatusChange("Pointer canceled");
         }}
         onPointerLeave={(event) => {
           const canvas = canvasRef;
           if (!canvas) return;
+          engine?.pointerLeave();
           loop?.handlePointerEvent(toViewportPointerEvent("pointer_leave", canvas, event));
         }}
       />

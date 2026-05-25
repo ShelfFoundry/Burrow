@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:odin": "odin build ../layout-engine -target:js_wasm32 -out:public/designer.wasm",
+    "build:odin": "odin build ../engine -target:js_wasm32 -out:public/designer.wasm -extra-linker-flags:\"--export-table\"",
     "preview": "vite preview"
   },
   "dependencies": {
