@@ -27,10 +27,10 @@ engine_init :: proc(width: i32, height: i32) {
 engine_resize :: proc(width: i32, height: i32) {
 	state.viewport_width = width
 	state.viewport_height = height
+}
 
-	if state.initialized {
-		engine_recompute_viewport_transform()
-	}
+engine_fit_page_to_viewport :: proc() {
+	engine_recompute_viewport_transform()
 }
 
 engine_frame :: proc() -> i32 {
@@ -146,6 +146,24 @@ engine_pointer_inside :: proc() -> i32 {
 
 engine_gpu_is_initialized :: proc() -> bool {
 	return gpu_is_initialized(&state.gpu)
+}
+
+engine_render_empty_page :: proc() -> bool {
+	page_rect_page := Rect {
+		x      = 0.0,
+		y      = 0.0,
+		width  = state.document.page.width,
+		height = state.document.page.height,
+	}
+
+	page_rect_screen := page_rect_to_screen(page_rect_page, state.transform)
+
+	return gpu_render_empty_page(
+		&state.gpu,
+		page_rect_screen,
+		f32(state.viewport_width),
+		f32(state.viewport_height),
+	)
 }
 
 engine_gpu_clear_frame :: proc() -> bool {

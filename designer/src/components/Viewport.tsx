@@ -52,7 +52,16 @@ export function Viewport(props: ViewportProps) {
         canvas.height,
       );
 
-      const cleared = engine.clearFrame();
+      const cleared = engine.renderEmptyPage();
+
+      window.addEventListener("resize", ()=>{
+        const resized = resizeCanvasToDisplaySize(canvas);
+        if (resized) {
+            engine?.resize(canvas.width, canvas.height);
+            engine?.configureGpuSurface(canvas.width, canvas.height);
+            engine?.renderEmptyPage();
+        }
+      });
       return;
 
       const pageSize = engine.getPageSize();

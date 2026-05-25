@@ -25,6 +25,11 @@ designer_resize :: proc(width: i32, height: i32) {
 }
 
 @(export)
+designer_fit_page_to_viewport :: proc() {
+	engine_fit_page_to_viewport()
+}
+
+@(export)
 designer_frame :: proc() -> i32 {
 	return engine_frame()
 }
@@ -138,6 +143,15 @@ designer_gpu_is_initialized :: proc() -> i32 {
 }
 
 @(export)
+designer_render_empty_page :: proc() -> i32 {
+	if engine_render_empty_page() {
+		return 1
+	}
+
+	return 0
+}
+
+@(export)
 designer_gpu_clear_frame :: proc() -> i32 {
 	if engine_gpu_clear_frame() {
 		return 1
@@ -184,20 +198,20 @@ designer_gpu_has_queue :: proc() -> i32 {
 
 @(export)
 designer_gpu_configure_surface :: proc(width: i32, height: i32) -> i32 {
-    if engine_gpu_configure_surface(width, height) {
-        return 1
-    }
+	if engine_gpu_configure_surface(width, height) {
+		return 1
+	}
 
-    return 0
+	return 0
 }
 
 @(export)
 designer_gpu_surface_configured :: proc() -> i32 {
-    if engine_gpu_surface_configured() {
-        return 1
-    }
+	if engine_gpu_surface_configured() {
+		return 1
+	}
 
-    return 0
+	return 0
 }
 
 main :: proc() {}

@@ -8,6 +8,7 @@ export type DesignerWasmExports = {
     designer_gpu_is_initialized: () => number;
 
     designer_resize: (width: number, height: number) => void;
+    designer_fit_page_to_viewport: ()=>void;
     designer_viewport_width: () => number;
     designer_viewport_height: () => number;
 
@@ -51,6 +52,7 @@ export type DesignerWasmExports = {
     designer_pointer_inside: () => number;
 
     designer_gpu_clear_frame: () => number;
+    designer_render_empty_page: () => number;
 
     designer_gpu_has_surface: () => number;
     designer_gpu_has_adapter: () => number;

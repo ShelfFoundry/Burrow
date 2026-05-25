@@ -56,7 +56,7 @@ compute_initial_viewport :: proc(
 	available_height := max_f32(1.0, canvas_size.height - padding * 2.0)
 
 	zoom_x := available_width / page_size.width
-	zoom_y := available_width / page_size.height
+	zoom_y := available_height / page_size.height
 
 	zoom := min_f32(zoom_x, zoom_y)
 

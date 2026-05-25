@@ -816,7 +816,7 @@ class WebGPUInterface {
 		const stepMode = this.enumeration("VertexStepMode", off(4));
 
 		return {
-			arrayStride: this.mem.loadU64(off(8)),
+			arrayStride: Number(this.mem.loadU64(off(8))),
 			stepMode: stepMode,
 			attributes: this.array(
 				this.mem.loadUint(off(this.mem.intSize)),
@@ -836,7 +836,7 @@ class WebGPUInterface {
 		off(4); // nextInChain
 		return {
 			format:         this.enumeration("VertexFormat", off(4)),
-			offset:         this.mem.loadU64(off(8)),
+			offset:         Number(this.mem.loadU64(off(8))),
 			shaderLocation: this.mem.loadU32(off(4)),
 		};
 	}
@@ -980,7 +980,7 @@ class WebGPUInterface {
 		return {
 			format:    this.enumeration("TextureFormat", off(4)),
 			blend:     this.BlendStatePtr(off(4)),
-			writeMask: this.mem.loadU64(off(8)),
+			writeMask: Number(this.mem.loadU64(off(8))),
 		};
 	}
 
@@ -1905,8 +1905,8 @@ class WebGPUInterface {
 				/** @type {GPUBufferDescriptor} */
 				const descriptor = {
 					label: this.StringView(off(this.sizes.StringView)),
-					usage: this.mem.loadU64(off(8)),
-					size: this.mem.loadU64(off(8)),
+					usage: Number(this.mem.loadU64(off(8))),
+					size: Number(this.mem.loadU64(off(8))),
 					mappedAtCreation: this.mem.loadB32(off(4)),
 				};
 

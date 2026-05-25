@@ -3,6 +3,9 @@ package designer
 import "base:runtime"
 import wgpu "vendor:wgpu"
 
+PAGE_SHADER_BYTES :: #load("page.wgsl")
+PAGE_SHADER :: string(PAGE_SHADER_BYTES)
+
 Gpu_State :: struct {
 	initialized:             bool,
 	has_surface:             bool,
@@ -22,6 +25,170 @@ Gpu_State :: struct {
 	clear_g:                 f64,
 	clear_b:                 f64,
 	clear_a:                 f64,
+	page_pipeline_ready:     bool,
+	page_pipeline:           wgpu.RenderPipeline,
+	page_vertex_buffer:      wgpu.Buffer,
+}
+
+Vertex :: struct {
+	position: [2]f32,
+	color:    [4]f32,
+}
+
+gpu_create_page_vertex_buffer :: proc(gpu: ^Gpu_State) -> bool {
+	if gpu == nil || gpu.device == nil {
+		return false
+	}
+
+	buffer_size := u64(size_of(Vertex) * 6)
+
+	descriptor := wgpu.BufferDescriptor {
+		label            = "page vertex buffer",
+		usage            = {.Vertex, .CopyDst},
+		size             = buffer_size,
+		mappedAtCreation = false,
+	}
+
+	gpu.page_vertex_buffer = wgpu.DeviceCreateBuffer(gpu.device, &descriptor)
+
+	return gpu.page_vertex_buffer != nil
+}
+
+gpu_create_page_pipeline :: proc(gpu: ^Gpu_State) -> bool {
+	if gpu == nil || gpu.device == nil || gpu.format == .Undefined {
+		return false
+	}
+
+	shader := gpu_create_shader_module(gpu)
+
+	if shader == nil {
+		return false
+	}
+
+	attributes := [?]wgpu.VertexAttribute {
+		wgpu.VertexAttribute{format = .Float32x2, offset = 0, shaderLocation = 0},
+		wgpu.VertexAttribute{format = .Float32x4, offset = 8, shaderLocation = 1},
+	}
+
+	vertex_buffer_layout := wgpu.VertexBufferLayout {
+		arrayStride    = size_of(Vertex),
+		stepMode       = .Vertex,
+		attributeCount = len(attributes),
+		attributes     = &attributes[0],
+	}
+
+	color_target := wgpu.ColorTargetState {
+		format    = gpu.format,
+		writeMask = {.Red, .Green, .Blue, .Alpha},
+	}
+
+	fragment_state := wgpu.FragmentState {
+		module      = shader,
+		entryPoint  = "fs_main",
+		targetCount = 1,
+		targets     = &color_target,
+	}
+
+	vertex_state := wgpu.VertexState {
+		module      = shader,
+		entryPoint  = "vs_main",
+		bufferCount = 1,
+		buffers     = &vertex_buffer_layout,
+	}
+
+	primitive := wgpu.PrimitiveState {
+		topology  = .TriangleList,
+		frontFace = .CCW,
+		cullMode  = .None,
+	}
+
+	multisample := wgpu.MultisampleState {
+		count                  = 1,
+		mask                   = 0xFFFFFFFF,
+		alphaToCoverageEnabled = false,
+	}
+
+	descriptor := wgpu.RenderPipelineDescriptor {
+		label        = "page pipeline",
+		vertex       = vertex_state,
+		primitive    = primitive,
+		depthStencil = nil,
+		multisample  = multisample,
+		fragment     = &fragment_state,
+	}
+
+	gpu.page_pipeline = wgpu.DeviceCreateRenderPipeline(gpu.device, &descriptor)
+
+	wgpu.ShaderModuleRelease(shader)
+
+	gpu.page_pipeline_ready = gpu.page_pipeline != nil
+	return gpu.page_pipeline_ready
+}
+
+gpu_create_shader_module :: proc(gpu: ^Gpu_State) -> wgpu.ShaderModule {
+	source := wgpu.ShaderSourceWGSL {
+		next  = nil,
+		sType = .ShaderSourceWGSL,
+		code  = PAGE_SHADER,
+	}
+
+	descriptor := wgpu.ShaderModuleDescriptor {
+		nextInChain = &source.chain,
+		label       = "page shader",
+	}
+
+	return wgpu.DeviceCreateShaderModule(gpu.device, &descriptor)
+}
+
+screen_to_clip :: proc(x, y: f32, viewport_width, viewport_height: f32) -> [2]f32 {
+	clip_x := (x / viewport_width) * 2.0 - 1.0
+	clip_y := 1.0 - (y / viewport_height) * 2.0
+
+	return [2]f32{clip_x, clip_y}
+}
+
+gpu_build_page_vertices :: proc(
+	vertices: ^[6]Vertex,
+	page_rect: Rect,
+	viewport_width, viewport_height: f32,
+) {
+	x0 := page_rect.x
+	y0 := page_rect.y
+	x1 := page_rect.x + page_rect.width
+	y1 := page_rect.y + page_rect.height
+
+	white := [4]f32{1.0, 1.0, 1.0, 1.0}
+
+	top_left := screen_to_clip(x0, y0, viewport_width, viewport_height)
+	top_right := screen_to_clip(x1, y0, viewport_width, viewport_height)
+	bottom_left := screen_to_clip(x0, y1, viewport_width, viewport_height)
+	bottom_right := screen_to_clip(x1, y1, viewport_width, viewport_height)
+
+	vertices[0] = Vertex {
+		position = top_left,
+		color    = white,
+	}
+	vertices[1] = Vertex {
+		position = bottom_left,
+		color    = white,
+	}
+	vertices[2] = Vertex {
+		position = top_right,
+		color    = white,
+	}
+
+	vertices[3] = Vertex {
+		position = top_right,
+		color    = white,
+	}
+	vertices[4] = Vertex {
+		position = bottom_left,
+		color    = white,
+	}
+	vertices[5] = Vertex {
+		position = bottom_right,
+		color    = white,
+	}
 }
 
 gpu_request_adapter_callback :: proc "c" (
@@ -211,6 +378,19 @@ gpu_configure_surface :: proc(gpu: ^Gpu_State, width, height: i32) -> bool {
 	wgpu.SurfaceCapabilitiesFreeMembers(capabilities)
 
 	gpu.surface_configured = true
+
+	if !gpu.page_pipeline_ready {
+		if !gpu_create_page_pipeline(gpu) {
+			return false
+		}
+	}
+
+	if gpu.page_vertex_buffer == nil {
+		if !gpu_create_page_vertex_buffer(gpu) {
+			return false
+		}
+	}
+
 	return true
 }
 
@@ -243,6 +423,107 @@ gpu_is_ready_to_render :: proc(gpu: ^Gpu_State) -> bool {
 		gpu.queue_ready &&
 		gpu.surface_configured \
 	)
+}
+
+gpu_render_empty_page :: proc(
+	gpu: ^Gpu_State,
+	page_rect: Rect,
+	viewport_width, viewport_height: f32,
+) -> bool {
+	if !gpu_is_ready_to_render(gpu) {
+		return false
+	}
+
+	if !gpu.page_pipeline_ready || gpu.page_vertex_buffer == nil {
+		return false
+	}
+
+	vertices: [6]Vertex
+	gpu_build_page_vertices(&vertices, page_rect, viewport_width, viewport_height)
+
+	wgpu.QueueWriteBuffer(
+		gpu.queue,
+		gpu.page_vertex_buffer,
+		0,
+		raw_data(vertices[:]),
+		size_of(Vertex) * len(vertices),
+	)
+
+	surface_texture := wgpu.SurfaceGetCurrentTexture(gpu.surface)
+
+	if surface_texture.texture == nil {
+		return false
+	}
+
+	texture_view := wgpu.TextureCreateView(surface_texture.texture, nil)
+
+	if texture_view == nil {
+		return false
+	}
+
+	color_attachment := wgpu.RenderPassColorAttachment {
+		view          = texture_view,
+		depthSlice    = wgpu.DEPTH_SLICE_UNDEFINED,
+		resolveTarget = nil,
+		loadOp        = .Clear,
+		storeOp       = .Store,
+		clearValue    = [4]f64{gpu.clear_r, gpu.clear_g, gpu.clear_b, gpu.clear_a},
+	}
+
+	render_pass_descriptor := wgpu.RenderPassDescriptor {
+		colorAttachmentCount = 1,
+		colorAttachments     = &color_attachment,
+	}
+
+	encoder := wgpu.DeviceCreateCommandEncoder(gpu.device, nil)
+
+	if encoder == nil {
+		wgpu.TextureViewRelease(texture_view)
+		return false
+	}
+
+	pass := wgpu.CommandEncoderBeginRenderPass(encoder, &render_pass_descriptor)
+
+	if pass == nil {
+		wgpu.CommandEncoderRelease(encoder)
+		wgpu.TextureViewRelease(texture_view)
+		return false
+	}
+
+	wgpu.RenderPassEncoderSetPipeline(pass, gpu.page_pipeline)
+
+	wgpu.RenderPassEncoderSetVertexBuffer(
+		pass,
+		0,
+		gpu.page_vertex_buffer,
+		0,
+		u64(size_of(Vertex) * 6),
+	)
+
+	wgpu.RenderPassEncoderDraw(pass, 6, 1, 0, 0)
+
+	wgpu.RenderPassEncoderEnd(pass)
+
+	command_buffer := wgpu.CommandEncoderFinish(encoder, nil)
+
+	if command_buffer == nil {
+		wgpu.RenderPassEncoderRelease(pass)
+		wgpu.CommandEncoderRelease(encoder)
+		wgpu.TextureViewRelease(texture_view)
+		return false
+	}
+
+	commands := [?]wgpu.CommandBuffer{command_buffer}
+	wgpu.QueueSubmit(gpu.queue, commands[:])
+
+	wgpu.SurfacePresent(gpu.surface)
+
+	wgpu.CommandBufferRelease(command_buffer)
+	wgpu.RenderPassEncoderRelease(pass)
+	wgpu.CommandEncoderRelease(encoder)
+	wgpu.TextureViewRelease(texture_view)
+
+	return true
 }
 
 gpu_clear_frame :: proc(gpu: ^Gpu_State) -> bool {

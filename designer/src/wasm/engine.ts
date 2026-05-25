@@ -1,4 +1,3 @@
-import type { ClearColor } from "../gpu/webgpu";
 import { loadDesignerWasm, type DesignerWasm } from "./designer";
 
 export type DesignerPointerDebugState = {
@@ -16,6 +15,7 @@ export type Engine = {
 
     init: (width: number, height: number) => boolean;
     resize: (width: number, height: number) => void;
+    fitPageToView: ()=>void;
     frame: () => number;
 
     isInitialized: () => boolean;
@@ -64,6 +64,7 @@ export type Engine = {
     getPointerDebugState: () => DesignerPointerDebugState;
 
     clearFrame: () => boolean;
+    renderEmptyPage: () => boolean;
 
     isGpuInitializeid: () => boolean;
     hasGpuSurface: () => boolean;
@@ -85,6 +86,10 @@ export async function createEngine(): Promise<Engine> {
         return wasm.exports.designer_resize(width, height);
     }
 
+    function fitPageToView(): void {
+        return wasm.exports.designer_fit_page_to_viewport();
+    }
+
     function frame(): number {
         return wasm.exports.designer_frame();
     }
@@ -103,7 +108,7 @@ export async function createEngine(): Promise<Engine> {
     function getPageSize() {
         return {
             width: wasm.exports.designer_page_width(),
-            height: wasm.exports.designer_viewport_height(),
+            height: wasm.exports.designer_page_height(),
         };
     }
 
@@ -167,10 +172,14 @@ export async function createEngine(): Promise<Engine> {
 
     function isGpuInitializeid(): boolean {
         return wasm.exports.designer_gpu_is_initialized() !== 0;
-    } 
+    }
 
     function clearFrame(): boolean {
         return wasm.exports.designer_gpu_clear_frame() !== 0;
+    }
+
+    function renderEmptyPage(): boolean {
+        return wasm.exports.designer_render_empty_page() !== 0;
     }
 
     function hasGpuSurface(): boolean {
@@ -201,6 +210,7 @@ export async function createEngine(): Promise<Engine> {
         wasm,
         init,
         resize,
+        fitPageToView,
         frame,
         isInitialized,
         getViewportSize,
@@ -221,6 +231,7 @@ export async function createEngine(): Promise<Engine> {
         hasGpuQueue,
         configureGpuSurface,
         isGpuSurfaceConfigured,
+        renderEmptyPage,
     };
 }
 
