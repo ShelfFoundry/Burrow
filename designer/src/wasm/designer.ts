@@ -13,6 +13,10 @@ export type DesignerWasmExports = {
     designer_page_width: () => number;
     designer_page_height: () => number;
     designer_object_count: () => number;
+
+    designer_zoom: () => number;
+    designer_pan_x: () => number;
+    designer_pan_y: () => number;
 };
 
 export type DesignerWasm = {

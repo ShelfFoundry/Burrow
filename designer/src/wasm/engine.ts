@@ -19,6 +19,12 @@ export type Engine = {
         height: number;
     };
 
+    getTransform: () => {
+        zoom: number;
+        panX: number;
+        panY: number;
+    };
+
     getObjectCount: () => number;
 };
 
@@ -55,6 +61,14 @@ export async function createEngine(): Promise<Engine> {
         };
     }
 
+    function getTransform() {
+        return {
+            zoom: wasm.exports.designer_zoom(),
+            panX: wasm.exports.designer_pan_x(),
+            panY: wasm.exports.designer_pan_y(),
+        };
+    }
+
     function getObjectCount(): number {
         return wasm.exports.designer_object_count();
     }
@@ -68,5 +82,6 @@ export async function createEngine(): Promise<Engine> {
         getViewportSize,
         getPageSize,
         getObjectCount,
+        getTransform,
     };
 }
