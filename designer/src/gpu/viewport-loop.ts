@@ -475,13 +475,16 @@ export function createViewportLoop(
 
         const resized = resizeCanvasToDisplaySize(canvas);
         if (resized) {
-            engine?.resize(canvas.width, canvas.height);
             resetViewToFitPage();
         }
 
         if (dirty) {
-            engine?.frame();
-            const frameState = beginFrame(gpuState, engine?.getClearColor()!);
+            const frameState = beginFrame(gpuState, {
+                r: 0.16,
+                g: 0.17,
+                b: 0.18,
+                a: 1.0
+            });
 
             const pageRects = pageRenderer.buildRects({
                 document,

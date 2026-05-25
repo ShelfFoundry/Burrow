@@ -39,33 +39,33 @@ export function Viewport(props: ViewportProps) {
     }
 
     try {
-      //const gpuState = await initWebGpu(canvas);
 
       resizeCanvasToDisplaySize(canvas);
 
-      engine = await createEngine();
-      const initialized = engine.init(canvas.width, canvas.height);
-      const gpuReady = await waitForDesignerGpuReady(engine);
+      if (!location.search.includes("ts")) {
+        engine = await createEngine();
+        engine.init(canvas.width, canvas.height);
+        await waitForDesignerGpuReady(engine);
 
-      const configured = engine.configureGpuSurface(
-        canvas.width,
-        canvas.height,
-      );
+        engine.configureGpuSurface(
+          canvas.width,
+          canvas.height,
+        );
 
-      const cleared = engine.renderEmptyPage();
+        engine.renderEmptyPage();
 
-      window.addEventListener("resize", ()=>{
-        const resized = resizeCanvasToDisplaySize(canvas);
-        if (resized) {
+        window.addEventListener("resize", () => {
+          const resized = resizeCanvasToDisplaySize(canvas);
+          if (resized) {
             engine?.resize(canvas.width, canvas.height);
             engine?.configureGpuSurface(canvas.width, canvas.height);
             engine?.renderEmptyPage();
-        }
-      });
-      return;
+          }
+        });
+        return;
+      }
 
-      const pageSize = engine.getPageSize();
-      const objectCount = engine.getObjectCount();
+      const gpuState = await initWebGpu(canvas);
 
 
       loop = createViewportLoop(
