@@ -1,8 +1,9 @@
 import { onCleanup, onMount } from "solid-js";
-import { initWebGpu } from "../gpu/webgpu";
+import { initWebGpu, resizeCanvasToDisplaySize } from "../gpu/webgpu";
 import { createViewportLoop, type ViewportLoop, type ViewportPointerEventKind } from "../gpu/viewport-loop";
 import type { EditorDocument } from "../editor/document";
 import type { RectEditableProperty, SelectedObjectSnapshot } from "../editor/selection";
+import { createEngine, type Engine } from "../wasm/engine";
 
 export type ViewportController = {
   setSelectionRectProperty: (
@@ -26,6 +27,7 @@ type ViewportProps = {
 export function Viewport(props: ViewportProps) {
   let canvasRef: HTMLCanvasElement | undefined;
   let loop: ViewportLoop | undefined;
+  let engine: Engine | undefined;
 
   onMount(async () => {
     props.onStatusChange("Viewport mounted");
@@ -38,27 +40,41 @@ export function Viewport(props: ViewportProps) {
 
     try {
       const gpuState = await initWebGpu(canvas);
-      loop = createViewportLoop(canvas, gpuState, props.document, {
-        onSelectionChanged: (_selection, hit) => {
-          if (hit.kind === "object") {
-            props.onStatusChange(`Selected object: ${hit.object.id}: ${hit.object.name}`);
-          } else {
-            props.onStatusChange("No object selected");
-          }
+
+      resizeCanvasToDisplaySize(canvas);
+
+      engine = await createEngine();
+      const initialized = engine.init(canvas.width, canvas.height);
+      const pageSize = engine.getPageSize();
+      const objectCount = engine.getObjectCount();
+
+      loop = createViewportLoop(
+        canvas,
+        gpuState,
+        props.document,
+        {
+          onSelectionChanged: (_selection, hit) => {
+            if (hit.kind === "object") {
+              props.onStatusChange(`Selected object: ${hit.object.id}: ${hit.object.name}`);
+            } else {
+              props.onStatusChange("No object selected");
+            }
+          },
+          onDocumentChanged: (event) => {
+            props.onSelectedObjectChange(event.selectedObject);
+            props.onDocumentRevisionChange?.(event.revision);
+          },
+          onInteractionHit: (hit) => {
+            if (hit.kind === "resize_handle") {
+              props.onStatusChange(`Resize handle ${hit.handleId} on object ${hit.objectId}`);
+            }
+            if (hit.kind === "object") {
+              props.onStatusChange(`Start move: object ${hit.objectId}`);
+            }
+          },
         },
-        onDocumentChanged: (event) => {
-          props.onSelectedObjectChange(event.selectedObject);
-          props.onDocumentRevisionChange?.(event.revision);
-        },
-        onInteractionHit: (hit) => {
-          if (hit.kind === "resize_handle") {
-            props.onStatusChange(`Resize handle ${hit.handleId} on object ${hit.objectId}`);
-          }
-          if (hit.kind === "object") {
-            props.onStatusChange(`Start move: object ${hit.objectId}`);
-          }
-        },
-      });
+        engine
+      );
       loop.start();
 
       props.onControllerReady?.({
@@ -80,11 +96,11 @@ export function Viewport(props: ViewportProps) {
       });
 
       props.onStatusChange(
-        `WebGPU loop running. Page: ${props.document.page.width}×${props.document.page.height}. Objects: ${props.document.objects.length}. Format: ${gpuState.format}`,
+        `Odin engine initialized=${initialized}. Page=${pageSize.width}×${pageSize.height}. Objects=${objectCount}. WebGPU format=${gpuState.format}`,
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown WebGPU error";
-      props.onStatusChange(`WebGPU failed: ${message}`);
+      const message = error instanceof Error ? error.message : "Unknown viewport error";
+      props.onStatusChange(`Viewport failed: ${message}`);
     }
 
     window.addEventListener("keydown", (event) => {

@@ -2,14 +2,17 @@ export type DesignerWasmExports = {
     memory?: WebAssembly.Memory;
 
     designer_version: () => number;
-    add_i32: (a: number, b: number) => number;
-    viewport_area: (width: number, height: number) => number;
-
     designer_init: (width: number, height: number) => number;
-    designer_resize: (width: number, height: number) => void;
+    designer_is_initialzied: () => number;
     designer_frame: () => number;
+
+    designer_resize: (width: number, height: number) => void;
     designer_viewport_width: () => number;
     designer_viewport_height: () => number;
+
+    designer_page_width: () => number;
+    designer_page_height: () => number;
+    designer_object_count: () => number;
 };
 
 export type DesignerWasm = {
@@ -27,6 +30,8 @@ export async function loadDesignerWasm(): Promise<DesignerWasm> {
     };
 
     const result = await WebAssembly.instantiateStreaming(fetch("/designer.wasm"), env);
+
+    console.log(result.instance.exports);
 
     return {
         exports: result.instance.exports as unknown as DesignerWasmExports,

@@ -1,53 +1,57 @@
 package designer
 
-viewport_width: i32
-viewport_height: i32
-frame_count: i32
-
 @(export)
 designer_version :: proc() -> i32 {
-    return 1
-}
-
-@(export)
-add_i32 :: proc(a: i32, b: i32) -> i32 {
-    return a + b
-}
-
-@(export)
-viewport_area :: proc(width: i32, height: i32) -> i32 {
-    return width * height
+	return 1
 }
 
 @(export)
 designer_init :: proc(width: i32, height: i32) -> i32 {
-    viewport_width = width
-    viewport_height = height
-    frame_count = 0
+    engine_init(width, height)
+	return 1
+}
 
-    return 1
+@(export)
+designer_is_initialized :: proc() -> i32 {
+    if engine_is_initialzied() {
+        return 1
+    }
+    return 0
 }
 
 @(export)
 designer_resize :: proc(width: i32, height: i32) {
-    viewport_width = width
-    viewport_height = height
+    engine_resize(width, height)
 }
 
 @(export)
 designer_frame :: proc() -> i32 {
-    frame_count += 1
-    return frame_count
+    return engine_frame()
 }
 
 @(export)
 designer_viewport_width :: proc() -> i32 {
-    return viewport_width
+    return engine_viewport_width()
 }
 
 @(export)
 designer_viewport_height :: proc() -> i32 {
-    return viewport_height
+    return engine_viewport_height()
 }
 
-main :: proc(){}
+@(export)
+designer_page_width :: proc() -> f32 {
+    return engine_page_width()
+}
+
+@(export)
+designer_page_height :: proc() -> f32 {
+    return engine_page_height()
+}
+
+@(export)
+designer_object_count :: proc() -> i32 {
+    return engine_object_count()
+}
+
+main :: proc() {}
