@@ -71,6 +71,49 @@ compute_initial_viewport :: proc(
 	return Viewport_Transform{zoom = zoom, pan_x = pan_x, pan_y = pan_y}
 }
 
+point_in_rect :: proc(point: Point, rect: Rect) -> bool {
+	return(
+		point.x >= rect.x &&
+		point.x <= rect.x + rect.width &&
+		point.y >= rect.y &&
+		point.y <= rect.y + rect.height \
+	)
+}
+
+distance_point_to_segment :: proc(point, a, b: Point) -> f32 {
+	ab_x := b.x - a.x
+	ab_y := b.y - a.y
+
+	ap_x := point.x - a.x
+	ap_y := point.y - a.y
+
+	ab_len_sq := ab_x * ab_x + ab_y * ab_y
+
+	if ab_len_sq <= 0.0001 {
+		dx := point.x - a.x
+		dy := point.y - a.y
+		return length_f32(dx, dy)
+	}
+
+	t := (ap_x * ab_x + ap_y * ab_y) / ab_len_sq
+
+	if t < 0.0 {
+		t = 0.0
+	} else if t > 1.0 {
+		t = 1.0
+	}
+
+	closest := Point {
+		x = a.x + ab_x * t,
+		y = a.y + ab_y * t,
+	}
+
+	dx := point.x - closest.x
+	dy := point.y - closest.y
+
+	return length_f32(dx, dy)
+}
+
 min_f32 :: proc(a, b: f32) -> f32 {
 	if a < b {
 		return a

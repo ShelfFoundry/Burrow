@@ -101,6 +101,12 @@ export type DesignerWasmExports = {
     designer_debug_first_object_bounds_y: () => number;
     designer_debug_first_object_bounds_width: () => number;
     designer_debug_first_object_bounds_height: () => number;
+    designer_debug_hit_test_current_pointer_kind: () => number;
+    designer_debug_hit_test_current_pointer_object_id: () => number;
+    designer_debug_hit_test_point_object_id: (
+        pageX: number,
+        pageY: number,
+    ) => number;
 
     wgpu_alloc: (size: number) => number;
     wgpu_free: (ptr: number) => void;

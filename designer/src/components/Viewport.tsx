@@ -36,8 +36,13 @@ export function Viewport(props: ViewportProps) {
     }
 
     engine.addRect(
-      0, 0, 100, 100,
+      50, 50, 100, 100,
       { r: 1, g: 0, b: 0, a: 1 }
+    );
+    engine.addLine(
+      0, 0, 100, 100,
+      { r: 1, g: 0, b: 0, a: 1 },
+      4
     );
 
     engine.configureGpuSurface(canvas.width, canvas.height);
@@ -276,6 +281,11 @@ export function Viewport(props: ViewportProps) {
             viewportEvent.button,
             viewportEvent.buttons,
           );
+
+          const hit = engine?.debugHitTestCurrentPointer();
+          if (hit) {
+            console.log("Odin hit", hit);
+          }
 
           loop?.handlePointerEvent(viewportEvent);
         }}

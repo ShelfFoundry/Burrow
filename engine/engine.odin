@@ -145,6 +145,21 @@ engine_pointer_inside :: proc() -> i32 {
 	return 0
 }
 
+engine_hit_test_point :: proc(page_x, page_y: f32) -> Hit_Result {
+	point := Point {
+		x = page_x,
+		y = page_y,
+	}
+
+	tolerance := 6.0 / state.transform.zoom
+
+	return hit_test_document(&state.document, point, tolerance)
+}
+
+engine_hit_test_current_pointer :: proc() -> Hit_Result {
+	return engine_hit_test_point(state.pointer.page_x, state.pointer.page_y)
+}
+
 engine_gpu_is_initialized :: proc() -> bool {
 	return gpu_is_initialized(&state.gpu)
 }
@@ -290,4 +305,29 @@ engine_debug_first_object_bounds_height :: proc() -> f32 {
 
 	bounds := object_bounds(object^)
 	return bounds.height
+}
+
+engine_debug_hit_test_current_pointer_kind :: proc() -> i32 {
+	hit := engine_hit_test_current_pointer()
+	return i32(hit.kind)
+}
+
+engine_debug_hit_test_current_pointer_object_id :: proc() -> i32 {
+	hit := engine_hit_test_current_pointer()
+
+	if hit.kind != .Object {
+		return 0
+	}
+
+	return i32(hit.object_id)
+}
+
+engine_debug_hit_test_point_object_id :: proc(page_x, page_y: f32) -> i32 {
+	hit := engine_hit_test_point(page_x, page_y)
+
+	if hit.kind != .Object {
+		return 0
+	}
+
+	return i32(hit.object_id)
 }

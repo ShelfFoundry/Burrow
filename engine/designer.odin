@@ -152,6 +152,21 @@ designer_gpu_clear_frame :: proc() -> i32 {
 }
 
 @(export)
+designer_debug_hit_test_current_pointer_kind :: proc() -> i32 {
+	return engine_debug_hit_test_current_pointer_kind()
+}
+
+@(export)
+designer_debug_hit_test_current_pointer_object_id :: proc() -> i32 {
+	return engine_debug_hit_test_current_pointer_object_id()
+}
+
+@(export)
+designer_debug_hit_test_point_object_id :: proc(page_x, page_y: f32) -> i32 {
+	return engine_debug_hit_test_point_object_id(page_x, page_y)
+}
+
+@(export)
 designer_debug_first_object_bounds_x :: proc() -> f32 {
 	return engine_debug_first_object_bounds_x()
 }

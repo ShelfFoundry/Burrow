@@ -104,6 +104,11 @@ export type Engine = {
         width: number;
         height: number;
     };
+    debugHitTestCurrentPointer: () => {
+        kind: number;
+        objectId: number;
+    };
+    debugHitTestPoint: (pageX: number, pageY: number) => number;
 };
 
 export async function createEngine(): Promise<Engine> {
@@ -292,6 +297,17 @@ export async function createEngine(): Promise<Engine> {
         };
     }
 
+    function debugHitTestCurrentPointer() {
+        return {
+            kind: wasm.exports.designer_debug_hit_test_current_pointer_kind(),
+            objectId: wasm.exports.designer_debug_hit_test_current_pointer_object_id(),
+        };
+    }
+
+    function debugHitTestPoint(pageX: number, pageY: number): number {
+        return wasm.exports.designer_debug_hit_test_point_object_id(pageX, pageY);
+    }
+
     function hasGpuSurface(): boolean {
         return wasm.exports.designer_gpu_has_surface() !== 0;
     }
@@ -347,6 +363,8 @@ export async function createEngine(): Promise<Engine> {
         addFullRect,
         addLine,
         getFirstObjectBounds,
+        debugHitTestCurrentPointer,
+        debugHitTestPoint,
     };
 }
 
