@@ -162,7 +162,7 @@ engine_clear_objects :: proc() {
 	document_clear_objects(&state.document)
 }
 
-engine_add_rect :: proc(x, y, width, height: f32, r, g, b, a: f32) -> i32 {
+engine_add_rect :: proc(x, y, width, height: f32, fill: RGBA) -> i32 {
 	id := document_add_rect_auto_id(
 		&state.document,
 		state.document.next_object_id,
@@ -170,7 +170,29 @@ engine_add_rect :: proc(x, y, width, height: f32, r, g, b, a: f32) -> i32 {
 		y,
 		width,
 		height,
-		RGBA{r = r, g = g, b = b, a = a},
+		fill,
+	)
+
+	return i32(id)
+}
+
+engine_add_full_rect :: proc(
+	x, y, width, height: f32,
+	fill: RGBA,
+	stroke: RGBA,
+	stroke_width: f32,
+) -> i32 {
+	id := document_add_rect_full_auto_id(
+		&state.document,
+		state.document.next_object_id,
+		x,
+		y,
+		width,
+		height,
+		fill_enabled = true,
+		fill = fill,
+		stroke_enabled = true,
+		stroke = Stroke_Style{color = stroke, width = stroke_width},
 	)
 
 	return i32(id)

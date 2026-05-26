@@ -220,7 +220,23 @@ designer_clear_objects :: proc() {
 
 @(export)
 designer_add_rect :: proc(x, y, width, height: f32, r, g, b, a: f32) -> i32 {
-	return engine_add_rect(x, y, width, height, r, g, b, a)
+	return engine_add_rect(x, y, width, height, RGBA{r = r, g = g, b = b, a = a})
+}
+
+@(export)
+designer_add_full_rect :: proc(
+	x, y, width, height: f32,
+	fill_r, fill_g, fill_b, fill_a, stroke_r, stroke_g, stroke_b, stroke_a, stroke_width: f32,
+) -> i32 {
+	return engine_add_full_rect(
+		x,
+		y,
+		width,
+		height,
+		RGBA{r = fill_r, g = fill_g, b = fill_b, a = fill_a},
+		RGBA{r = stroke_r, g = stroke_g, b = stroke_b, a = stroke_a},
+		stroke_width,
+	)
 }
 
 main :: proc() {}

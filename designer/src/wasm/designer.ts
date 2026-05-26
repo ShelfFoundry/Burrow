@@ -64,6 +64,21 @@ export type DesignerWasmExports = {
         b: number,
         a: number,
     ) => number;
+    designer_add_full_rect: (
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        fill_r: number,
+        fill_g: number,
+        fill_b: number,
+        fill_a: number,
+        stroke_r: number,
+        stroke_g: number,
+        stroke_b: number,
+        stroke_a: number,
+        stroke_width: number,
+    ) => number;
 
     designer_gpu_has_surface: () => number;
     designer_gpu_has_adapter: () => number;

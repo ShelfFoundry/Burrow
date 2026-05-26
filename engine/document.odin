@@ -55,9 +55,9 @@ Editor_Object :: struct {
 }
 
 Editor_Document :: struct {
-	page:         Page,
-	object_count: int,
-	objects:      [MAX_OBJECTS]Editor_Object,
+	page:           Page,
+	object_count:   int,
+	objects:        [MAX_OBJECTS]Editor_Object,
 	next_object_id: i32,
 }
 
@@ -68,12 +68,15 @@ document_init_blank :: proc(document: ^Editor_Document, page_width, page_height:
 	document.next_object_id = 1
 }
 
-document_add_rect :: proc(
+document_add_rect_full :: proc(
 	document: ^Editor_Document,
 	id: Object_Id,
 	name_id: i32,
 	x, y, width, height: f32,
+	fill_enabled: bool,
 	fill: RGBA,
+	stroke_enabled: bool,
+	stroke: Stroke_Style,
 ) -> bool {
 	if document.object_count >= MAX_OBJECTS {
 		return false
@@ -90,14 +93,37 @@ document_add_rect :: proc(
 			y = y,
 			width = width,
 			height = height,
-			fill_enabled = true,
+			fill_enabled = fill_enabled,
 			fill = fill,
-			stroke_enabled = false,
+			stroke_enabled = stroke_enabled,
+			stroke = stroke,
 		},
 	}
 
 	document.object_count += 1
 	return true
+}
+
+document_add_rect :: proc(
+	document: ^Editor_Document,
+	id: Object_Id,
+	name_id: i32,
+	x, y, width, height: f32,
+	fill: RGBA,
+) -> bool {
+	return document_add_rect_full(
+		document,
+		id,
+		name_id,
+		x,
+		y,
+		width,
+		height,
+		true,
+		fill,
+		false,
+		Stroke_Style{},
+	)
 }
 
 document_object_count :: proc(document: ^Editor_Document) -> i32 {
@@ -121,11 +147,32 @@ document_add_rect_auto_id :: proc(
 	document: ^Editor_Document,
 	name_id: i32,
 	x, y, width, height: f32,
-	fill: RGBA
+	fill: RGBA,
 ) -> Object_Id {
 	id := Object_Id(document.next_object_id)
 
-	ok := document_add_rect(
+	ok := document_add_rect(document, id, name_id, x, y, width, height, fill)
+
+	if !ok {
+		return Object_Id(0)
+	}
+
+	document.next_object_id += 1
+	return id
+}
+
+document_add_rect_full_auto_id :: proc(
+	document: ^Editor_Document,
+	name_id: i32,
+	x, y, width, height: f32,
+	fill_enabled: bool,
+	fill: RGBA,
+	stroke_enabled: bool,
+	stroke: Stroke_Style,
+) -> Object_Id {
+	id := Object_Id(document.next_object_id)
+
+	ok := document_add_rect_full(
 		document,
 		id,
 		name_id,
@@ -133,7 +180,10 @@ document_add_rect_auto_id :: proc(
 		y,
 		width,
 		height,
-		fill
+		fill_enabled,
+		fill,
+		stroke_enabled,
+		stroke,
 	)
 
 	if !ok {

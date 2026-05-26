@@ -73,6 +73,15 @@ export type Engine = {
         height: number,
         color: { r: number; g: number; b: number; a: number },
     ) => number;
+    addFullRect: (
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        fillColor: { r: number; g: number; b: number; a: number },
+        strokeColor: { r: number; g: number; b: number; a: number },
+        strokeWidth: number,
+    ) => number;
 
     isGpuInitializeid: () => boolean;
     hasGpuSurface: () => boolean;
@@ -213,6 +222,32 @@ export async function createEngine(): Promise<Engine> {
         );
     }
 
+    function addFullRect(
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        fillColor: { r: number; g: number; b: number; a: number },
+        strokeColor: { r: number; g: number; b: number; a: number },
+        strokeWidth: number,
+    ): number {
+        return wasm.exports.designer_add_full_rect(
+            x,
+            y,
+            width,
+            height,
+            fillColor.r,
+            fillColor.g,
+            fillColor.b,
+            fillColor.a,
+            strokeColor.r,
+            strokeColor.g,
+            strokeColor.b,
+            strokeColor.a,
+            strokeWidth,
+        );
+    }
+
     function hasGpuSurface(): boolean {
         return wasm.exports.designer_gpu_has_surface() !== 0;
     }
@@ -265,6 +300,7 @@ export async function createEngine(): Promise<Engine> {
         renderDocument,
         clearObjects,
         addRect,
+        addFullRect,
     };
 }
 

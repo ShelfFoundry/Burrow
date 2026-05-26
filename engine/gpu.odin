@@ -6,7 +6,7 @@ import wgpu "vendor:wgpu"
 PAGE_SHADER_BYTES :: #load("page.wgsl")
 PAGE_SHADER :: string(PAGE_SHADER_BYTES)
 
-MAX_RENDER_RECTS :: 256
+MAX_RENDER_RECTS :: 1024
 VERTICES_PER_RECT :: 6
 MAX_RECT_VERTICES :: MAX_RENDER_RECTS * VERTICES_PER_RECT
 
@@ -653,10 +653,6 @@ gpu_push_rect_object_vertices :: proc(
 		return true
 	}
 
-	if !object.rect.fill_enabled {
-		return true
-	}
-
 	rect_page := Rect {
 		x      = object.rect.x,
 		y      = object.rect.y,
@@ -666,14 +662,139 @@ gpu_push_rect_object_vertices :: proc(
 
 	rect_screen := page_rect_to_screen(rect_page, transform)
 
-	return gpu_push_rect_vertices(
+	if object.rect.fill_enabled {
+		if !gpu_push_rect_vertices(
+			vertices,
+			vertex_count,
+			rect_screen,
+			rgba_to_vertex_color(object.rect.fill),
+			viewport_width,
+			viewport_height,
+		) {
+			return false
+		}
+	}
+
+	if object.rect.stroke_enabled {
+		stroke_width_screen := object.rect.stroke.width * transform.zoom
+
+		if !gpu_push_rect_stroke_vertices(
+			vertices,
+			vertex_count,
+			rect_screen,
+			stroke_width_screen,
+			rgba_to_vertex_color(object.rect.stroke.color),
+			viewport_width,
+			viewport_height,
+		) {
+			return false
+		}
+	}
+
+	return true
+}
+
+gpu_push_rect_stroke_vertices :: proc(
+	vertices: [^]Vertex,
+	vertex_count: ^int,
+	rect: Rect,
+	stroke_width: f32,
+	color: [4]f32,
+	viewport_width, viewport_height: f32,
+) -> bool {
+	if stroke_width <= 0.0 {
+		return true
+	}
+
+	x := rect.x
+	y := rect.y
+	w := rect.width
+	h := rect.height
+	s := stroke_width
+
+	// Clamp stroke so very small rects do not invert.
+	max_stroke := min_f32(w, h) / 2.0
+	if s > max_stroke {
+		s = max_stroke
+	}
+
+	top := Rect {
+		x      = x,
+		y      = y,
+		width  = w,
+		height = s,
+	}
+
+	bottom := Rect {
+		x      = x,
+		y      = y + h - s,
+		width  = w,
+		height = s,
+	}
+
+	left := Rect {
+		x      = x,
+		y      = y + s,
+		width  = s,
+		height = h - s * 2.0,
+	}
+
+	right := Rect {
+		x      = x + w - s,
+		y      = y + s,
+		width  = s,
+		height = h - s * 2.0,
+	}
+
+	if !gpu_push_rect_vertices(
 		vertices,
 		vertex_count,
-		rect_screen,
-		rgba_to_vertex_color(object.rect.fill),
+		top,
+		color,
 		viewport_width,
 		viewport_height,
-	)
+	) {
+		return false
+	}
+
+	if !gpu_push_rect_vertices(
+		vertices,
+		vertex_count,
+		bottom,
+		color,
+		viewport_width,
+		viewport_height,
+	) {
+		return false
+	}
+
+	if left.height > 0.0 {
+		if !gpu_push_rect_vertices(
+			vertices,
+			vertex_count,
+			left,
+			color,
+			viewport_width,
+			viewport_height,
+		) {
+			return false
+		}
+	}
+
+	if right.height > 0.0 {
+		if !gpu_push_rect_vertices(
+			vertices,
+			vertex_count,
+			right,
+			color,
+			viewport_width,
+			viewport_height,
+		) {
+			return false
+		}
+	}
+
+	return true
 }
 
 gpu_push_rect_vertices :: proc(
