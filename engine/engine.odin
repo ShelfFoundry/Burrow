@@ -1,14 +1,15 @@
 package designer
 
 Engine_State :: struct {
-	initialized:     bool,
-	viewport_width:  i32,
-	viewport_height: i32,
-	frame_count:     i32,
-	document:        Editor_Document,
-	transform:       Viewport_Transform,
-	pointer:         Pointer_State,
-	gpu:             Gpu_State,
+	initialized:        bool,
+	viewport_width:     i32,
+	viewport_height:    i32,
+	frame_count:        i32,
+	document:           Editor_Document,
+	transform:          Viewport_Transform,
+	pointer:            Pointer_State,
+	gpu:                Gpu_State,
+	selected_object_id: Object_Id,
 }
 
 state: Engine_State
@@ -211,6 +212,14 @@ engine_add_full_rect :: proc(
 	return i32(id)
 }
 
+engine_clear_selection :: proc() {
+	state.selected_object_id = Object_Id(0)
+}
+
+engine_has_selection :: proc() -> bool {
+	return state.selected_object_id != Object_Id(0)
+}
+
 engine_gpu_clear_frame :: proc() -> bool {
 	return gpu_clear_frame(&state.gpu)
 }
@@ -237,4 +246,48 @@ engine_gpu_configure_surface :: proc(width, height: i32) -> bool {
 
 engine_gpu_surface_configured :: proc() -> bool {
 	return state.gpu.surface_configured
+}
+
+engine_debug_first_object_bounds_x :: proc() -> f32 {
+	object := document_get_object_by_index(&state.document, 0)
+
+	if object == nil {
+		return 0.0
+	}
+
+	bounds := object_bounds(object^)
+	return bounds.x
+}
+
+engine_debug_first_object_bounds_y :: proc() -> f32 {
+	object := document_get_object_by_index(&state.document, 0)
+
+	if object == nil {
+		return 0.0
+	}
+
+	bounds := object_bounds(object^)
+	return bounds.y
+}
+
+engine_debug_first_object_bounds_width :: proc() -> f32 {
+	object := document_get_object_by_index(&state.document, 0)
+
+	if object == nil {
+		return 0.0
+	}
+
+	bounds := object_bounds(object^)
+	return bounds.width
+}
+
+engine_debug_first_object_bounds_height :: proc() -> f32 {
+	object := document_get_object_by_index(&state.document, 0)
+
+	if object == nil {
+		return 0.0
+	}
+
+	bounds := object_bounds(object^)
+	return bounds.height
 }

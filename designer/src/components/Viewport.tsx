@@ -35,6 +35,11 @@ export function Viewport(props: ViewportProps) {
       return false;
     }
 
+    engine.addRect(
+      0, 0, 100, 100,
+      { r: 1, g: 0, b: 0, a: 1 }
+    );
+
     engine.configureGpuSurface(canvas.width, canvas.height);
     let ok = engine.renderDocument();
 
@@ -160,6 +165,10 @@ export function Viewport(props: ViewportProps) {
       queue: engine.hasGpuQueue(),
       configured: engine.isGpuSurfaceConfigured(),
     });
+    console.groupEnd();
+
+    console.group("First object bounds");
+    console.table(engine.getFirstObjectBounds());
     console.groupEnd();
 
     console.groupEnd();

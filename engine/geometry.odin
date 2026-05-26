@@ -88,3 +88,11 @@ max_f32 :: proc(a, b: f32) -> f32 {
 length_f32 :: proc(x, y: f32) -> f32 {
 	return math.sqrt_f32(x * x + y * y)
 }
+
+abs_f32 :: proc(value: f32) -> f32 {
+	if value < 0.0 {
+		return -value
+	}
+
+	return value
+}

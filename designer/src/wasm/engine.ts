@@ -98,6 +98,12 @@ export type Engine = {
     hasGpuQueue: () => boolean;
     configureGpuSurface: (width: number, height: number) => boolean;
     isGpuSurfaceConfigured: () => boolean;
+    getFirstObjectBounds: () => {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    };
 };
 
 export async function createEngine(): Promise<Engine> {
@@ -277,6 +283,15 @@ export async function createEngine(): Promise<Engine> {
         );
     }
 
+    function getFirstObjectBounds() {
+        return {
+            x: wasm.exports.designer_debug_first_object_bounds_x(),
+            y: wasm.exports.designer_debug_first_object_bounds_y(),
+            width: wasm.exports.designer_debug_first_object_bounds_width(),
+            height: wasm.exports.designer_debug_first_object_bounds_height(),
+        };
+    }
+
     function hasGpuSurface(): boolean {
         return wasm.exports.designer_gpu_has_surface() !== 0;
     }
@@ -331,6 +346,7 @@ export async function createEngine(): Promise<Engine> {
         addRect,
         addFullRect,
         addLine,
+        getFirstObjectBounds,
     };
 }
 

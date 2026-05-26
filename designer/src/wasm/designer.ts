@@ -97,6 +97,10 @@ export type DesignerWasmExports = {
     designer_gpu_has_queue: () => number;
     designer_gpu_configure_surface: (width: number, height: number) => number;
     designer_gpu_surface_configured: () => number;
+    designer_debug_first_object_bounds_x: () => number;
+    designer_debug_first_object_bounds_y: () => number;
+    designer_debug_first_object_bounds_width: () => number;
+    designer_debug_first_object_bounds_height: () => number;
 
     wgpu_alloc: (size: number) => number;
     wgpu_free: (ptr: number) => void;

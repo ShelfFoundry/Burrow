@@ -235,3 +235,19 @@ document_add_rect_full_auto_id :: proc(
 	document.next_object_id += 1
 	return id
 }
+
+document_get_object_by_index :: proc(document: ^Editor_Document, index: int) -> ^Editor_Object {
+	if index < 0 || index >= document.object_count {
+		return nil
+	}
+	return &document.objects[index]
+}
+
+document_get_object_by_id :: proc(document: ^Editor_Document, id: Object_Id) -> ^Editor_Object {
+	for i in 0 ..< document.object_count {
+		if document.objects[i].id == id {
+			return &document.objects[i]
+		}
+	}
+	return nil
+}

@@ -152,6 +152,26 @@ designer_gpu_clear_frame :: proc() -> i32 {
 }
 
 @(export)
+designer_debug_first_object_bounds_x :: proc() -> f32 {
+	return engine_debug_first_object_bounds_x()
+}
+
+@(export)
+designer_debug_first_object_bounds_y :: proc() -> f32 {
+	return engine_debug_first_object_bounds_y()
+}
+
+@(export)
+designer_debug_first_object_bounds_width :: proc() -> f32 {
+	return engine_debug_first_object_bounds_width()
+}
+
+@(export)
+designer_debug_first_object_bounds_height :: proc() -> f32 {
+	return engine_debug_first_object_bounds_height()
+}
+
+@(export)
 designer_gpu_has_surface :: proc() -> i32 {
 	if engine_gpu_has_surface() {
 		return 1
