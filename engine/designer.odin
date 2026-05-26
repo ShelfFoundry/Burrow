@@ -219,6 +219,11 @@ designer_clear_objects :: proc() {
 }
 
 @(export)
+designer_add_line :: proc(x1, y1, x2, y2: f32, r, g, b, a: f32, width: f32) -> i32 {
+	return engine_add_line(x1, y1, x2, y2, r, g, b, a, width)
+}
+
+@(export)
 designer_add_rect :: proc(x, y, width, height: f32, r, g, b, a: f32) -> i32 {
 	return engine_add_rect(x, y, width, height, RGBA{r = r, g = g, b = b, a = a})
 }

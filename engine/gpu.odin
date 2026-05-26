@@ -6,9 +6,9 @@ import wgpu "vendor:wgpu"
 PAGE_SHADER_BYTES :: #load("page.wgsl")
 PAGE_SHADER :: string(PAGE_SHADER_BYTES)
 
-MAX_RENDER_RECTS :: 1024
-VERTICES_PER_RECT :: 6
-MAX_RECT_VERTICES :: MAX_RENDER_RECTS * VERTICES_PER_RECT
+MAX_RENDER_PRIMITIVES :: 1024
+VERTICES_PER_PRIMITIVE :: 6
+MAX_RENDER_VERTICES :: MAX_RENDER_PRIMITIVES * VERTICES_PER_PRIMITIVE
 
 Gpu_State :: struct {
 	initialized:             bool,
@@ -41,7 +41,7 @@ gpu_create_rect_vertex_buffer :: proc(gpu: ^Gpu_State) -> bool {
 		return false
 	}
 
-	buffer_size := u64(size_of(Vertex) * MAX_RECT_VERTICES)
+	buffer_size := u64(size_of(Vertex) * MAX_RENDER_VERTICES)
 
 	descriptor := wgpu.BufferDescriptor {
 		label            = "page vertex buffer",
@@ -408,7 +408,7 @@ gpu_render_document :: proc(
 		return false
 	}
 
-	vertices: [MAX_RECT_VERTICES]Vertex
+	vertices: [MAX_RENDER_VERTICES]Vertex
 	vertex_count := 0
 
 	page_rect_page := Rect {
@@ -436,14 +436,27 @@ gpu_render_document :: proc(
 	for i in 0 ..< document.object_count {
 		object := document.objects[i]
 
-		ok = gpu_push_rect_object_vertices(
-			raw_data(vertices[:]),
-			&vertex_count,
-			object,
-			transform,
-			viewport_width,
-			viewport_height,
-		)
+		if object.kind == .Rect {
+			ok = gpu_push_rect_object_vertices(
+				raw_data(vertices[:]),
+				&vertex_count,
+				object,
+				transform,
+				viewport_width,
+				viewport_height,
+			)
+		} else if object.kind == .Line {
+			ok = gpu_push_line_object_vertices(
+				raw_data(vertices[:]),
+				&vertex_count,
+				object,
+				transform,
+				viewport_width,
+				viewport_height,
+			)
+		} else {
+			ok = true
+		}
 
 		if !ok {
 			return false
@@ -804,7 +817,7 @@ gpu_push_rect_vertices :: proc(
 	color: [4]f32,
 	viewport_width, viewport_height: f32,
 ) -> bool {
-	if vertex_count^ + 6 > MAX_RECT_VERTICES {
+	if vertex_count^ + 6 > MAX_RENDER_VERTICES {
 		return false
 	}
 
@@ -821,6 +834,153 @@ gpu_push_rect_vertices :: proc(
 	vertex_count^ += 6
 
 	return true
+}
+
+gpu_build_line_vertices :: proc(
+	vertices: ^[6]Vertex,
+	x1, y1, x2, y2: f32,
+	width: f32,
+	color: [4]f32,
+	viewport_width, viewport_height: f32,
+) -> bool {
+	dx := x2 - x1
+	dy := y2 - y1
+
+	length := length_f32(dx, dy)
+
+	if length <= 0.0001 {
+		return false
+	}
+
+	half_width := width / 2.0
+
+	// Unit direction along the line.
+	ux := dx / length
+	uy := dy / length
+
+	// Perpendicular vector.
+	//
+	// For screen coordinates where y grows downward, this still produces
+	// the correct quad. It just chooses one side as "left" and the other
+	// as "right".
+	px := -uy
+	py := ux
+
+	ox := px * half_width
+	oy := py * half_width
+
+	a := screen_to_clip(x1 + ox, y1 + oy, viewport_width, viewport_height)
+	b := screen_to_clip(x2 + ox, y2 + oy, viewport_width, viewport_height)
+	c := screen_to_clip(x2 - ox, y2 - oy, viewport_width, viewport_height)
+	d := screen_to_clip(x1 - ox, y1 - oy, viewport_width, viewport_height)
+
+	vertices[0] = Vertex {
+		position = a,
+		color    = color,
+	}
+	vertices[1] = Vertex {
+		position = d,
+		color    = color,
+	}
+	vertices[2] = Vertex {
+		position = b,
+		color    = color,
+	}
+
+	vertices[3] = Vertex {
+		position = b,
+		color    = color,
+	}
+	vertices[4] = Vertex {
+		position = d,
+		color    = color,
+	}
+	vertices[5] = Vertex {
+		position = c,
+		color    = color,
+	}
+
+	return true
+}
+
+gpu_push_line_vertices :: proc(
+	vertices: [^]Vertex,
+	vertex_count: ^int,
+	x1, y1, x2, y2: f32,
+	width: f32,
+	color: [4]f32,
+	viewport_width, viewport_height: f32,
+) -> bool {
+	if vertex_count^ + 6 > MAX_RENDER_VERTICES {
+		return false
+	}
+
+	local_vertices: [6]Vertex
+
+	ok := gpu_build_line_vertices(
+		&local_vertices,
+		x1,
+		y1,
+		x2,
+		y2,
+		width,
+		color,
+		viewport_width,
+		viewport_height,
+	)
+
+	if !ok {
+		return true
+	}
+
+	base := vertex_count^
+
+	for i in 0 ..< 6 {
+		vertices[base + i] = local_vertices[i]
+	}
+
+	vertex_count^ += 6
+
+	return true
+}
+
+gpu_push_line_object_vertices :: proc(
+	vertices: [^]Vertex,
+	vertex_count: ^int,
+	object: Editor_Object,
+	transform: Viewport_Transform,
+	viewport_width, viewport_height: f32,
+) -> bool {
+	if object.kind != .Line {
+		return true
+	}
+
+	p1_page := Point {
+		x = object.line.x1,
+		y = object.line.y1,
+	}
+	p2_page := Point {
+		x = object.line.x2,
+		y = object.line.y2,
+	}
+
+	p1_screen := page_to_screen(p1_page, transform)
+	p2_screen := page_to_screen(p2_page, transform)
+
+	stroke_width_screen := object.line.stroke.width * transform.zoom
+
+	return gpu_push_line_vertices(
+		vertices,
+		vertex_count,
+		p1_screen.x,
+		p1_screen.y,
+		p2_screen.x,
+		p2_screen.y,
+		stroke_width_screen,
+		rgba_to_vertex_color(object.line.stroke.color),
+		viewport_width,
+		viewport_height,
+	)
 }
 
 rgba_to_vertex_color :: proc(color: RGBA) -> [4]f32 {

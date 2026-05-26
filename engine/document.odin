@@ -68,6 +68,48 @@ document_init_blank :: proc(document: ^Editor_Document, page_width, page_height:
 	document.next_object_id = 1
 }
 
+document_add_line :: proc(
+	document: ^Editor_Document,
+	id: Object_Id,
+	name_id: i32,
+	x1, y1, x2, y2: f32,
+	stroke: Stroke_Style,
+) -> bool {
+	if document.object_count >= MAX_OBJECTS {
+		return false
+	}
+
+	index := document.object_count
+
+	document.objects[index] = Editor_Object {
+		id = id,
+		kind = .Line,
+		name_id = name_id,
+		line = Line_Object{x1 = x1, y1 = y1, x2 = x2, y2 = y2, stroke = stroke},
+	}
+
+	document.object_count += 1
+	return true
+}
+
+document_add_line_auto_id :: proc(
+	document: ^Editor_Document,
+	name_id: i32,
+	x1, y1, x2, y2: f32,
+	stroke: Stroke_Style,
+) -> Object_Id {
+	id := Object_Id(document.next_object_id)
+
+	ok := document_add_line(document, id, name_id, x1, y1, x2, y2, stroke)
+
+	if !ok {
+		return Object_Id(0)
+	}
+
+	document.next_object_id += 1
+	return id
+}
+
 document_add_rect_full :: proc(
 	document: ^Editor_Document,
 	id: Object_Id,

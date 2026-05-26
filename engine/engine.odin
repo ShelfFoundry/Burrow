@@ -162,6 +162,19 @@ engine_clear_objects :: proc() {
 	document_clear_objects(&state.document)
 }
 
+engine_add_line :: proc(x1, y1, x2, y2: f32, r, g, b, a: f32, width: f32) -> i32 {
+	id := document_add_line_auto_id(
+		&state.document,
+		state.document.next_object_id,
+		x1,
+		y1,
+		x2,
+		y2,
+		Stroke_Style{color = RGBA{r = r, g = g, b = b, a = a}, width = width},
+	)
+	return i32(id)
+}
+
 engine_add_rect :: proc(x, y, width, height: f32, fill: RGBA) -> i32 {
 	id := document_add_rect_auto_id(
 		&state.document,

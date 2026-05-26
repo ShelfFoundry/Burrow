@@ -82,6 +82,14 @@ export type Engine = {
         strokeColor: { r: number; g: number; b: number; a: number },
         strokeWidth: number,
     ) => number;
+    addLine: (
+        x1: number,
+        y1: number,
+        x2: number,
+        y2: number,
+        color: { r: number; g: number; b: number; a: number },
+        width: number,
+    ) => number;
 
     isGpuInitializeid: () => boolean;
     hasGpuSurface: () => boolean;
@@ -203,6 +211,27 @@ export async function createEngine(): Promise<Engine> {
         wasm.exports.designer_clear_objects();
     }
 
+    function addLine(
+        x1: number,
+        y1: number,
+        x2: number,
+        y2: number,
+        color: { r: number; g: number; b: number; a: number },
+        width: number,
+    ): number {
+        return wasm.exports.designer_add_line(
+            x1,
+            y1,
+            x2,
+            y2,
+            color.r,
+            color.g,
+            color.b,
+            color.a,
+            width,
+        );
+    }
+
     function addRect(
         x: number,
         y: number,
@@ -301,6 +330,7 @@ export async function createEngine(): Promise<Engine> {
         clearObjects,
         addRect,
         addFullRect,
+        addLine,
     };
 }
 

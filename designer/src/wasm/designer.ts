@@ -79,6 +79,17 @@ export type DesignerWasmExports = {
         stroke_a: number,
         stroke_width: number,
     ) => number;
+    designer_add_line: (
+        x1: number,
+        y1: number,
+        x2: number,
+        y2: number,
+        r: number,
+        g: number,
+        b: number,
+        a: number,
+        width: number,
+    ) => number;
 
     designer_gpu_has_surface: () => number;
     designer_gpu_has_adapter: () => number;

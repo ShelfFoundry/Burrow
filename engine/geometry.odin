@@ -1,5 +1,7 @@
 package designer
 
+import "core:math"
+
 Point :: struct {
 	x: f32,
 	y: f32,
@@ -81,4 +83,8 @@ max_f32 :: proc(a, b: f32) -> f32 {
 		return a
 	}
 	return b
+}
+
+length_f32 :: proc(x, y: f32) -> f32 {
+	return math.sqrt_f32(x * x + y * y)
 }
