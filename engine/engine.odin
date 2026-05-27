@@ -168,6 +168,7 @@ engine_render_document :: proc() -> bool {
 	return gpu_render_document(
 		&state.gpu,
 		&state.document,
+		&state.selection,
 		state.transform,
 		f32(state.viewport_width),
 		f32(state.viewport_height),
