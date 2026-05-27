@@ -1047,14 +1047,29 @@ gpu_push_selection_vertices :: proc(
 		}
 
 		if object.kind == .Line {
-			return gpu_push_line_selection_vertices(
+			if !gpu_push_line_selection_vertices(
 				vertices,
 				vertex_count,
 				object^,
 				transform,
 				viewport_width,
 				viewport_height,
-			)
+			) {
+				return false
+			}
+
+			if !gpu_push_line_endpoint_handles_vertices(
+				vertices,
+				vertex_count,
+				object^,
+				transform,
+				viewport_width,
+				viewport_height,
+			) {
+				return false
+			}
+
+			return true
 		}
 
 		bounds := object_bounds(object^)
@@ -1214,6 +1229,51 @@ gpu_push_selection_handles_vertices :: proc(
 		) {
 			return false
 		}
+	}
+
+	return true
+}
+
+gpu_push_line_endpoint_handles_vertices :: proc(
+	vertices: [^]Vertex,
+	vertex_count: ^int,
+	object: Editor_Object,
+	transform: Viewport_Transform,
+	viewport_width, viewport_height: f32,
+) -> bool {
+	p1_page := Point {
+		x = object.line.x1,
+		y = object.line.y1,
+	}
+	p2_page := Point {
+		x = object.line.x2,
+		y = object.line.y2,
+	}
+
+	p1_screen := page_to_screen(p1_page, transform)
+	p2_screen := page_to_screen(p2_page, transform)
+
+	p1_handle := selection_handle_rect(p1_screen)
+	p2_handle := selection_handle_rect(p2_screen)
+
+	if !gpu_push_selection_handle_vertices(
+		vertices,
+		vertex_count,
+		p1_handle,
+		viewport_width,
+		viewport_height,
+	) {
+		return false
+	}
+
+	if !gpu_push_selection_handle_vertices(
+		vertices,
+		vertex_count,
+		p2_handle,
+		viewport_width,
+		viewport_height,
+	) {
+		return false
 	}
 
 	return true
