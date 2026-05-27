@@ -14,6 +14,11 @@ SELECTION_STROKE_WIDTH_SCREEN :: 2.0
 SELECTION_COLOR :: [4]f32{0.1, 0.45, 1.0, 1.0}
 SELECTION_LINE_EXTRA_WIDTH_SCREEN :: 2.0
 
+HANDLE_SIZE_SCREEN :: 8.0
+HANDLE_STROKE_WIDTH_SCREEN :: 1.0
+HANDLE_FILL_COLOR :: [4]f32{1.0, 1.0, 1.0, 1.0}
+HANDLE_STROKE_COLOR :: [4]f32{0.1, 0.45, 1.0, 1.0}
+
 Gpu_State :: struct {
 	initialized:             bool,
 	has_surface:             bool,
@@ -1054,14 +1059,31 @@ gpu_push_selection_vertices :: proc(
 
 		bounds := object_bounds(object^)
 
-		return gpu_push_selection_outline_vertices(
+		if !gpu_push_selection_outline_vertices(
 			vertices,
 			vertex_count,
 			bounds,
 			transform,
 			viewport_width,
 			viewport_height,
-		)
+		) {
+			return false
+		}
+
+		if object.kind == .Rect {
+			if !gpu_push_selection_handles_vertices(
+				vertices,
+				vertex_count,
+				bounds,
+				transform,
+				viewport_width,
+				viewport_height,
+			) {
+				return false
+			}
+		}
+
+		return true
 	}
 
 	// Multi-selection: draw one combined selection box.
@@ -1071,14 +1093,29 @@ gpu_push_selection_vertices :: proc(
 		return true
 	}
 
-	return gpu_push_selection_outline_vertices(
+	if !gpu_push_selection_outline_vertices(
 		vertices,
 		vertex_count,
 		bounds,
 		transform,
 		viewport_width,
 		viewport_height,
-	)
+	) {
+		return false
+	}
+
+	if !gpu_push_selection_handles_vertices(
+		vertices,
+		vertex_count,
+		bounds,
+		transform,
+		viewport_width,
+		viewport_height,
+	) {
+		return false
+	}
+
+	return true
 }
 
 gpu_push_line_selection_vertices :: proc(
@@ -1117,6 +1154,69 @@ gpu_push_line_selection_vertices :: proc(
 		viewport_width,
 		viewport_height,
 	)
+}
+
+gpu_push_selection_handle_vertices :: proc(
+	vertices: [^]Vertex,
+	vertex_count: ^int,
+	handle_rect: Rect,
+	viewport_width, viewport_height: f32,
+) -> bool {
+	// Fill
+	if !gpu_push_rect_vertices(
+		vertices,
+		vertex_count,
+		handle_rect,
+		HANDLE_FILL_COLOR,
+		viewport_width,
+		viewport_height,
+	) {
+		return false
+	}
+
+	// Stroke
+	if !gpu_push_rect_stroke_vertices(
+		vertices,
+		vertex_count,
+		handle_rect,
+		HANDLE_STROKE_WIDTH_SCREEN,
+		HANDLE_STROKE_COLOR,
+		viewport_width,
+		viewport_height,
+	) {
+		return false
+	}
+
+	return true
+}
+
+gpu_push_selection_handles_vertices :: proc(
+	vertices: [^]Vertex,
+	vertex_count: ^int,
+	bounds_page: Rect,
+	transform: Viewport_Transform,
+	viewport_width, viewport_height: f32,
+) -> bool {
+	bounds_screen := page_rect_to_screen(bounds_page, transform)
+
+	handles := [?]Resize_Handle{.NW, .N, .NE, .E, .SE, .S, .SW, .W}
+
+	for handle in handles {
+		center := selection_handle_center(bounds_screen, handle)
+		rect := selection_handle_rect(center)
+
+		if !gpu_push_selection_handle_vertices(
+			vertices,
+			vertex_count,
+			rect,
+			viewport_width,
+			viewport_height,
+		) {
+			return false
+		}
+	}
+
+	return true
 }
 
 rgba_to_vertex_color :: proc(color: RGBA) -> [4]f32 {

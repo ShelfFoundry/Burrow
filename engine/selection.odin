@@ -7,6 +7,18 @@ Selection_State :: struct {
 	ids:   [MAX_SELECTED_OBJECTS]Object_Id,
 }
 
+Resize_Handle :: enum {
+	None,
+	NW,
+	N,
+	NE,
+	E,
+	SE,
+	S,
+	SW,
+	W,
+}
+
 selection_clear :: proc(selection: ^Selection_State) {
 	selection.count = 0
 }
@@ -66,4 +78,55 @@ selection_replace :: proc(selection: ^Selection_State, id: Object_Id) {
 	if id != Object_Id(0) {
 		selection_add(selection, id)
 	}
+}
+
+selection_handle_center :: proc(bounds_screen: Rect, handle: Resize_Handle) -> Point {
+	x0 := bounds_screen.x
+	y0 := bounds_screen.y
+	x1 := bounds_screen.x + bounds_screen.width
+	y1 := bounds_screen.y + bounds_screen.height
+
+	cx := bounds_screen.x + bounds_screen.width / 2.0
+	cy := bounds_screen.y + bounds_screen.height / 2.0
+
+	if handle == .NW {
+		return Point{x = x0, y = y0}
+	}
+
+	if handle == .N {
+		return Point{x = cx, y = y0}
+	}
+
+	if handle == .NE {
+		return Point{x = x1, y = y0}
+	}
+
+	if handle == .E {
+		return Point{x = x1, y = cy}
+	}
+
+	if handle == .SE {
+		return Point{x = x1, y = y1}
+	}
+
+	if handle == .S {
+		return Point{x = cx, y = y1}
+	}
+
+	if handle == .SW {
+		return Point{x = x0, y = y1}
+	}
+
+	if handle == .W {
+		return Point{x = x0, y = cy}
+	}
+
+	return Point{}
+}
+
+selection_handle_rect :: proc(center: Point) -> Rect {
+	size := f32(HANDLE_SIZE_SCREEN)
+	half := f32(size / 2.0)
+
+	return Rect{x = center.x - half, y = center.y - half, width = size, height = size}
 }
