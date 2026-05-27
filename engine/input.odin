@@ -1,9 +1,13 @@
 package designer
 
-MOD_CTRL :: 1
-MOD_SHIFT :: 2
-MOD_ALT :: 4
-MOD_META :: 8
+Input_Modifier :: enum u8 {
+	Ctrl,
+	Shift,
+	Alt,
+	Meta,
+}
+
+Input_Modifiers :: bit_set[Input_Modifier;u8]
 
 Pointer_State :: struct {
 	x:         f32,
@@ -14,7 +18,7 @@ Pointer_State :: struct {
 	buttons:   i32,
 	is_down:   bool,
 	inside:    bool,
-	modifiers: i32,
+	modifiers: Input_Modifiers,
 }
 
 pointer_set_position :: proc(pointer: ^Pointer_State, x, y: f32, transform: Viewport_Transform) {
@@ -32,7 +36,7 @@ pointer_down :: proc(
 	x, y: f32,
 	button, buttons: i32,
 	transform: Viewport_Transform,
-	modifiers: i32,
+	modifiers: Input_Modifiers,
 ) {
 	pointer_set_position(pointer, x, y, transform)
 
@@ -48,7 +52,7 @@ pointer_move :: proc(
 	x, y: f32,
 	buttons: i32,
 	transform: Viewport_Transform,
-	modifiers: i32,
+	modifiers: Input_Modifiers,
 ) {
 	pointer_set_position(pointer, x, y, transform)
 
@@ -64,7 +68,7 @@ pointer_up :: proc(
 	x, y: f32,
 	button, buttons: i32,
 	transform: Viewport_Transform,
-	modifiers: i32,
+	modifiers: Input_Modifiers,
 ) {
 	pointer_set_position(pointer, x, y, transform)
 
@@ -85,4 +89,9 @@ pointer_cancel :: proc(pointer: ^Pointer_State) {
 pointer_leave :: proc(pointer: ^Pointer_State) {
 	pointer.inside = false
 	pointer.is_down = pointer.buttons != 0
+}
+
+input_modifiers_from_i32 :: proc(value: i32) -> Input_Modifiers {
+	mask := u8(value)
+	return transmute(Input_Modifiers)mask
 }

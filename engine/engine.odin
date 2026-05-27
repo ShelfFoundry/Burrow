@@ -90,15 +90,38 @@ engine_recompute_viewport_transform :: proc() {
 }
 
 engine_pointer_down :: proc(x, y: f32, button, buttons: i32, modifiers: i32) {
-	pointer_down(&state.pointer, x, y, button, buttons, state.transform, modifiers)
+	pointer_down(
+		&state.pointer,
+		x,
+		y,
+		button,
+		buttons,
+		state.transform,
+		input_modifiers_from_i32(modifiers),
+	)
 }
 
 engine_pointer_move :: proc(x, y: f32, buttons: i32, modifiers: i32) {
-	pointer_move(&state.pointer, x, y, buttons, state.transform, modifiers)
+	pointer_move(
+		&state.pointer,
+		x,
+		y,
+		buttons,
+		state.transform,
+		input_modifiers_from_i32(modifiers),
+	)
 }
 
 engine_pointer_up :: proc(x, y: f32, button, buttons: i32, modifiers: i32) {
-	pointer_up(&state.pointer, x, y, button, buttons, state.transform, modifiers)
+	pointer_up(
+		&state.pointer,
+		x,
+		y,
+		button,
+		buttons,
+		state.transform,
+		input_modifiers_from_i32(modifiers),
+	)
 }
 
 engine_pointer_cancel :: proc() {
@@ -231,7 +254,7 @@ engine_add_full_rect :: proc(
 engine_update_selection_from_current_pointer :: proc() -> i32 {
 	hit := engine_hit_test_current_pointer()
 
-	shift_down := (state.pointer.modifiers & MOD_SHIFT) != 0
+	shift_down := .Shift in state.pointer.modifiers
 
 	if shift_down {
 		if hit.kind == .Object {
