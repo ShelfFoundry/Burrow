@@ -44,24 +44,22 @@ export type Engine = {
         button: number,
         buttons: number,
     ) => void;
-
     pointerMove: (
         x: number,
         y: number,
         buttons: number,
     ) => void;
-
     pointerUp: (
         x: number,
         y: number,
         button: number,
         buttons: number,
     ) => void;
-
     pointerCancel: () => void;
     pointerLeave: () => void;
-
-    getPointerDebugState: () => DesignerPointerDebugState;
+    selectAtCurrentPointer(): number;
+    getSelectedObjectId(): number;
+    clearSelection(): void;
 
     clearFrame: () => boolean;
     renderDocument: () => boolean;
@@ -109,6 +107,7 @@ export type Engine = {
         objectId: number;
     };
     debugHitTestPoint: (pageX: number, pageY: number) => number;
+    getPointerDebugState: () => DesignerPointerDebugState;
 };
 
 export async function createEngine(): Promise<Engine> {
@@ -192,6 +191,18 @@ export async function createEngine(): Promise<Engine> {
 
     function pointerLeave(): void {
         wasm.exports.designer_pointer_leave();
+    }
+
+    function selectAtCurrentPointer():number {
+        return wasm.exports.designer_select_at_current_pointer();
+    }
+
+    function getSelectedObjectId():number {
+        return wasm.exports.designer_selected_object_id();
+    }
+
+    function clearSelection() {
+        return wasm.exports.designer_clear_selection();
     }
 
     function getPointerDebugState(): DesignerPointerDebugState {
@@ -365,6 +376,9 @@ export async function createEngine(): Promise<Engine> {
         getFirstObjectBounds,
         debugHitTestCurrentPointer,
         debugHitTestPoint,
+        selectAtCurrentPointer,
+        getSelectedObjectId,
+        clearSelection,
     };
 }
 

@@ -29,6 +29,7 @@ export function Viewport(props: ViewportProps) {
   let loop: ViewportLoop | undefined;
   let engine: Engine | undefined;
   let handleResize: EventListener | undefined;
+  const DEBUG: boolean = window.location.search.includes("debug") || false;
 
   function renderOdinFrame(canvas: HTMLCanvasElement): boolean {
     if (!engine) {
@@ -48,7 +49,7 @@ export function Viewport(props: ViewportProps) {
     engine.configureGpuSurface(canvas.width, canvas.height);
     let ok = engine.renderDocument();
 
-    if (window.location.search.includes("debug")) dumpOdinDebugInfo(engine, canvas);
+    if (DEBUG) dumpOdinDebugInfo(engine, canvas);
 
     return ok;
   }
@@ -282,9 +283,9 @@ export function Viewport(props: ViewportProps) {
             viewportEvent.buttons,
           );
 
-          const hit = engine?.debugHitTestCurrentPointer();
-          if (hit) {
-            console.log("Odin hit", hit);
+          if (DEBUG) {
+            console.log("Selected object id", engine?.selectAtCurrentPointer())
+            console.log("Hit", engine?.debugHitTestCurrentPointer());
           }
 
           loop?.handlePointerEvent(viewportEvent);

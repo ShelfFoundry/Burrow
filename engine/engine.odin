@@ -235,6 +235,26 @@ engine_has_selection :: proc() -> bool {
 	return state.selected_object_id != Object_Id(0)
 }
 
+engine_select_at_current_pointer :: proc() -> i32 {
+	hit := engine_hit_test_current_pointer()
+
+	if hit.kind == .Object {
+		engine_select_object(hit.object_id)
+		return i32(hit.object_id)
+	}
+
+	engine_clear_selection()
+	return 0
+}
+
+engine_select_object :: proc(id: Object_Id) {
+	state.selected_object_id = id
+}
+
+engine_get_selected_object_id :: proc() -> i32 {
+	return i32(state.selected_object_id)
+}
+
 engine_gpu_clear_frame :: proc() -> bool {
 	return gpu_clear_frame(&state.gpu)
 }

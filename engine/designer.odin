@@ -135,6 +135,21 @@ designer_pointer_inside :: proc() -> i32 {
 }
 
 @(export)
+designer_select_at_current_pointer :: proc() -> i32 {
+	return engine_select_at_current_pointer()
+}
+
+@(export)
+designer_selected_object_id :: proc() -> i32 {
+	return engine_get_selected_object_id()
+}
+
+@(export)
+designer_clear_selection :: proc() {
+	engine_clear_selection()
+}
+
+@(export)
 designer_gpu_is_initialized :: proc() -> i32 {
 	if engine_gpu_is_initialized() {
 		return 1

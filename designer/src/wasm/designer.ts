@@ -50,6 +50,9 @@ export type DesignerWasmExports = {
     designer_pointer_buttons: () => number;
     designer_pointer_is_down: () => number;
     designer_pointer_inside: () => number;
+    designer_select_at_current_pointer: () => number;
+    designer_selected_object_id: () => number;
+    designer_clear_selection: () => void;
 
     designer_gpu_clear_frame: () => number;
     designer_render_document: () => number;
