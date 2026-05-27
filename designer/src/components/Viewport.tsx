@@ -4,6 +4,7 @@ import { createViewportLoop, type ViewportLoop, type ViewportPointerEventKind } 
 import type { EditorDocument } from "../editor/document";
 import type { RectEditableProperty, SelectedObjectSnapshot } from "../editor/selection";
 import { createEngine, waitForDesignerGpuReady, type Engine } from "../wasm/engine";
+import { createOdinRenderLoop, type OdinRenderLoop } from "../wasm/loop";
 
 export type ViewportController = {
   setSelectionRectProperty: (
@@ -28,21 +29,9 @@ export function Viewport(props: ViewportProps) {
   let canvasRef: HTMLCanvasElement | undefined;
   let loop: ViewportLoop | undefined;
   let engine: Engine | undefined;
+  let odinLoop: OdinRenderLoop | undefined;
   let handleResize: EventListener | undefined;
   const DEBUG: boolean = window.location.search.includes("debug") || false;
-
-  function renderOdinFrame(canvas: HTMLCanvasElement): boolean {
-    if (!engine) {
-      return false;
-    }
-
-    engine.configureGpuSurface(canvas.width, canvas.height);
-    let ok = engine.renderDocument();
-
-    if (DEBUG) dumpOdinDebugInfo(engine, canvas);
-
-    return ok;
-  }
 
   async function startOdinRenderer(canvas: HTMLCanvasElement) {
     engine = await createEngine();
@@ -52,18 +41,17 @@ export function Viewport(props: ViewportProps) {
 
     engine.init(canvas.width, canvas.height);
     await waitForDesignerGpuReady(engine);
+    engine?.configureGpuSurface(canvas.width, canvas.height);
 
     engine.addRect(
       50, 50, 100, 100,
       { r: 1, g: 0, b: 0, a: 1 }
     );
     engine.addLine(
-      0, 0, 100, 100,
-      { r: 1, g: 0, b: 0, a: 1 },
-      1
+      0, 0, 50, 50,
+      { r: 0, g: 1, b: 0, a: 1 },
+      4
     );
-
-    renderOdinFrame(canvas);
 
     handleResize = () => {
       const resized = resizeCanvasToDisplaySize(canvas);
@@ -73,10 +61,27 @@ export function Viewport(props: ViewportProps) {
       }
 
       engine?.resize(canvas.width, canvas.height);
-      renderOdinFrame(canvas);
+      engine?.configureGpuSurface(canvas.width, canvas.height);
+      odinLoop?.requestRender();
     };
 
     window.addEventListener("resize", handleResize);
+
+    odinLoop = createOdinRenderLoop(canvas, () => {
+      if (!engine) {
+        return false;
+      }
+
+      const ok = engine.renderDocument();
+
+      if (DEBUG) {
+        dumpOdinDebugInfo(engine, canvas);
+      }
+
+      return ok;
+    });
+
+    odinLoop.start();
   }
 
   async function startPocRenderer(canvas: HTMLCanvasElement) {
@@ -224,6 +229,7 @@ export function Viewport(props: ViewportProps) {
 
   onCleanup(() => {
     loop?.stop();
+    odinLoop?.stop();
     if (handleResize) window.removeEventListener("resize", handleResize);
   });
 
@@ -285,13 +291,12 @@ export function Viewport(props: ViewportProps) {
             engine.pointerModifiers(event),
           );
 
-          renderOdinFrame(canvasRef);
-
           if (DEBUG) {
             console.log("Selected object(s)", engine?.getSelectionIds())
             console.log("Hit", engine?.debugInteractionHit());
           }
 
+          odinLoop?.requestRender();
           loop?.handlePointerEvent(viewportEvent);
         }}
         onPointerMove={(event) => {
@@ -307,6 +312,7 @@ export function Viewport(props: ViewportProps) {
             engine.pointerModifiers(event),
           );
 
+          odinLoop?.requestRender();
           loop?.handlePointerEvent(viewportEvent);
         }}
         onPointerUp={(event) => {
@@ -323,6 +329,7 @@ export function Viewport(props: ViewportProps) {
             engine.pointerModifiers(event),
           );
 
+          odinLoop?.requestRender();
           loop?.handlePointerEvent(viewportEvent);
 
           if (canvas.hasPointerCapture(event.pointerId)) {

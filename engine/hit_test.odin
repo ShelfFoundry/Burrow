@@ -15,20 +15,6 @@ Hit_Result :: struct {
 	line_handle:   Line_Handle,
 }
 
-Interaction_Result_Kind :: enum {
-	None,
-	Selection_Changed,
-	Resize_Handle,
-	Line_Handle,
-}
-
-Interaction_Result :: struct {
-	kind:          Interaction_Result_Kind,
-	object_id:     Object_Id,
-	resize_handle: Resize_Handle,
-	line_handle:   Line_Handle,
-}
-
 hit_test_rect_object :: proc(object: Editor_Object, point: Point) -> bool {
 	bounds := object_rect_bounds(object)
 	return point_in_rect(point, bounds)

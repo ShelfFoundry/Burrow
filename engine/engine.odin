@@ -10,6 +10,7 @@ Engine_State :: struct {
 	pointer:          Pointer_State,
 	gpu:              Gpu_State,
 	selection:        Selection_State,
+	interaction:      Interaction_State,
 	last_interaction: Interaction_Result,
 }
 
@@ -24,6 +25,7 @@ engine_init :: proc(width: i32, height: i32) {
 	document_init_blank(&state.document, 612.0, 792.0)
 	engine_recompute_viewport_transform()
 	gpu_init(&state.gpu)
+	engine_clear_interaction()
 }
 
 engine_resize :: proc(width: i32, height: i32) {
@@ -91,9 +93,14 @@ engine_recompute_viewport_transform :: proc() {
 }
 
 engine_pointer_down_interaction :: proc() -> Interaction_Result {
+	// 1. Handles win.
 	hit := engine_hit_test_interaction_at_current_pointer()
 
 	if hit.kind == .Resize_Handle {
+		state.interaction.mode = .Resize_Handle
+		state.interaction.resize_handle = hit.resize_handle
+		state.interaction.active_object_id = hit.object_id
+
 		state.last_interaction = Interaction_Result {
 			kind          = .Resize_Handle,
 			object_id     = hit.object_id,
@@ -104,6 +111,10 @@ engine_pointer_down_interaction :: proc() -> Interaction_Result {
 	}
 
 	if hit.kind == .Line_Handle {
+		state.interaction.mode = .Line_Handle
+		state.interaction.line_handle = hit.line_handle
+		state.interaction.active_object_id = hit.object_id
+
 		state.last_interaction = Interaction_Result {
 			kind        = .Line_Handle,
 			object_id   = hit.object_id,
@@ -113,13 +124,141 @@ engine_pointer_down_interaction :: proc() -> Interaction_Result {
 		return state.last_interaction
 	}
 
-	changed_id := engine_update_selection_from_current_pointer()
+	object_hit := engine_hit_test_current_pointer()
+	multi_select := engine_multi_select_modifier_down()
+
+	// 2. Modifier-click toggles selection and does not start moving.
+	if multi_select {
+		if object_hit.kind == .Object {
+			selection_toggle(&state.selection, object_hit.object_id)
+
+			state.last_interaction = Interaction_Result {
+				kind      = .Selection_Changed,
+				object_id = object_hit.object_id,
+			}
+
+			return state.last_interaction
+		}
+
+		// Modifier-click empty preserves selection.
+		state.last_interaction = Interaction_Result {
+			kind      = .Selection_Changed,
+			object_id = Object_Id(0),
+		}
+
+		return state.last_interaction
+	}
+
+	// 3. Multi-selection group bounds click starts group move.
+	if engine_pointer_inside_selection_group_bounds() {
+		engine_start_move_interaction(Object_Id(0))
+
+		state.last_interaction = Interaction_Result {
+			kind      = .Move_Selection,
+			object_id = Object_Id(0),
+		}
+
+		return state.last_interaction
+	}
+
+	// 4. Object hit: select if needed, then move.
+	if object_hit.kind == .Object {
+		if !selection_contains(&state.selection, object_hit.object_id) {
+			selection_replace(&state.selection, object_hit.object_id)
+		}
+
+		engine_start_move_interaction(object_hit.object_id)
+
+		state.last_interaction = Interaction_Result {
+			kind      = .Move_Selection,
+			object_id = object_hit.object_id,
+		}
+
+		return state.last_interaction
+	}
+
+	// 5. Empty plain click clears.
+	selection_clear(&state.selection)
+	engine_clear_interaction()
 
 	state.last_interaction = Interaction_Result {
 		kind      = .Selection_Changed,
-		object_id = Object_Id(changed_id),
+		object_id = Object_Id(0),
 	}
 
+	return state.last_interaction
+}
+
+engine_start_move_interaction :: proc(active_object_id: Object_Id) {
+	state.interaction.mode = .Moving_Selection
+
+	state.interaction.start_pointer_page = Point {
+		x = state.pointer.page_x,
+		y = state.pointer.page_y,
+	}
+
+	state.interaction.last_pointer_page = state.interaction.start_pointer_page
+
+	state.interaction.start_pointer_screen = Point {
+		x = state.pointer.x,
+		y = state.pointer.y,
+	}
+
+	state.interaction.last_pointer_screen = state.interaction.start_pointer_screen
+
+	state.interaction.active_object_id = active_object_id
+}
+
+engine_pointer_move_interaction :: proc() -> Interaction_Result {
+	if state.interaction.mode == .Moving_Selection {
+		current := Point {
+			x = state.pointer.page_x,
+			y = state.pointer.page_y,
+		}
+
+		dx := current.x - state.interaction.last_pointer_page.x
+		dy := current.y - state.interaction.last_pointer_page.y
+
+		if dx != 0.0 || dy != 0.0 {
+			document_translate_selection(&state.document, &state.selection, dx, dy)
+		}
+
+		state.interaction.last_pointer_page = current
+		state.interaction.last_pointer_screen = Point {
+			x = state.pointer.x,
+			y = state.pointer.y,
+		}
+
+		state.last_interaction = Interaction_Result {
+			kind      = .Move_Selection,
+			object_id = state.interaction.active_object_id,
+		}
+
+		return state.last_interaction
+	}
+
+	state.last_interaction = Interaction_Result {
+		kind = .None,
+	}
+	return state.last_interaction
+}
+
+engine_pointer_up_interaction :: proc() -> Interaction_Result {
+	if state.interaction.mode == .Moving_Selection {
+		engine_clear_interaction()
+
+		state.last_interaction = Interaction_Result {
+			kind = .Move_Selection,
+		}
+
+		return state.last_interaction
+	}
+
+	engine_clear_interaction()
+
+	state.last_interaction = Interaction_Result {
+		kind = .None,
+	}
 	return state.last_interaction
 }
 
@@ -305,6 +444,25 @@ engine_add_full_rect :: proc(
 	return i32(id)
 }
 
+engine_pointer_inside_selection_group_bounds :: proc() -> bool {
+	if state.selection.count <= 1 {
+		return false
+	}
+
+	bounds, ok := selection_bounds(&state.document, &state.selection)
+
+	if !ok {
+		return false
+	}
+
+	point := Point {
+		x = state.pointer.page_x,
+		y = state.pointer.page_y,
+	}
+
+	return point_in_rect(point, bounds)
+}
+
 engine_update_selection_from_current_pointer :: proc() -> i32 {
 	hit := engine_hit_test_current_pointer()
 
@@ -327,6 +485,10 @@ engine_update_selection_from_current_pointer :: proc() -> i32 {
 
 	selection_clear(&state.selection)
 	return 0
+}
+
+engine_clear_interaction :: proc() {
+	state.interaction = Interaction_State{}
 }
 
 engine_clear_selection :: proc() {
@@ -452,4 +614,8 @@ engine_debug_interaction_hit_resize_handle :: proc() -> i32 {
 engine_debug_interaction_hit_line_handle :: proc() -> i32 {
 	hit := engine_hit_test_interaction_at_current_pointer()
 	return i32(hit.line_handle)
+}
+
+engine_multi_select_modifier_down :: proc() -> bool {
+	return .Shift in state.pointer.modifiers
 }

@@ -251,3 +251,52 @@ document_get_object_by_id :: proc(document: ^Editor_Document, id: Object_Id) -> 
 	}
 	return nil
 }
+
+object_translate :: proc(object: ^Editor_Object, dx, dy: f32) {
+	if object == nil {
+		return
+	}
+
+	if object.kind == .Rect {
+		object.rect.x += dx
+		object.rect.y += dy
+		return
+	}
+
+	if object.kind == .Line {
+		object.line.x1 += dx
+		object.line.y1 += dy
+		object.line.x2 += dx
+		object.line.y2 += dy
+		return
+	}
+}
+
+document_translate_object_by_id :: proc(
+	document: ^Editor_Document,
+	id: Object_Id,
+	dx, dy: f32,
+) -> bool {
+	object := document_get_object_by_id(document, id)
+
+	if object == nil {
+		return false
+	}
+
+	object_translate(object, dx, dy)
+	return true
+}
+
+document_translate_selection :: proc(
+	document: ^Editor_Document,
+	selection: ^Selection_State,
+	dx, dy: f32,
+) {
+	if document == nil || selection == nil {
+		return
+	}
+
+	for i in 0 ..< selection.count {
+		document_translate_object_by_id(document, selection.ids[i], dx, dy)
+	}
+}

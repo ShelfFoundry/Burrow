@@ -81,6 +81,18 @@ designer_pointer_down_interaction :: proc() -> i32 {
 }
 
 @(export)
+designer_pointer_move_interaction :: proc() -> i32 {
+	result := engine_pointer_move_interaction()
+	return i32(result.kind)
+}
+
+@(export)
+designer_pointer_up_interaction :: proc() -> i32 {
+	result := engine_pointer_up_interaction()
+	return i32(result.kind)
+}
+
+@(export)
 designer_pointer_down :: proc(x, y: f32, button, buttons: i32, modifiers: i32) {
 	engine_pointer_down(x, y, button, buttons, modifiers)
 }

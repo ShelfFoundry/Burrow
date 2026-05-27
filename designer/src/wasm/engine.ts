@@ -185,6 +185,7 @@ export async function createEngine(): Promise<Engine> {
         modifiers: number,
     ): void {
         wasm.exports.designer_pointer_move(x, y, buttons, modifiers);
+        wasm.exports.designer_pointer_move_interaction()
     }
 
     function pointerUp(
@@ -195,6 +196,7 @@ export async function createEngine(): Promise<Engine> {
         modifiers: number,
     ): void {
         wasm.exports.designer_pointer_up(x, y, button, buttons, modifiers);
+        wasm.exports.designer_pointer_up_interaction()
     }
 
     function pointerCancel(): void {

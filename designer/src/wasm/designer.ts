@@ -54,6 +54,8 @@ export type DesignerWasmExports = {
     designer_pointer_is_down: () => number;
     designer_pointer_inside: () => number;
     designer_pointer_down_interaction: () => number;
+    designer_pointer_move_interaction: () => number;
+    designer_pointer_up_interaction: () => number;
 
     designer_clear_selection: () => void;
     designer_selection_count: () => number;
