@@ -1,5 +1,29 @@
 import { loadDesignerWasm, type DesignerWasm } from "./designer";
 
+export type ViewportPointerEventKind =
+    | "pointer_down"
+    | "pointer_move"
+    | "pointer_up"
+    | "pointer_cancel"
+    | "pointer_leave";
+
+export type ViewportPointerEvent = {
+    kind: ViewportPointerEventKind,
+    pointerId: number,
+
+    // NOTE: canvas-local x/y in backing-buffer pixels
+    x: number,
+    y: number,
+
+    buttons: number;
+    button: number;
+
+    shiftKey: boolean;
+    altKey: boolean;
+    ctrlKey: boolean;
+    metaKey: boolean;
+};
+
 export type DesignerPointerDebugState = {
     x: number;
     y: number;
@@ -456,4 +480,19 @@ export async function waitForDesignerGpuReady(
     }
 
     return false;
+}
+
+export function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement): boolean {
+    const devicePixelRatio = window.devicePixelRatio || 1;
+
+    const displayWidth = Math.max(1, Math.floor(canvas.clientWidth * devicePixelRatio));
+    const displayHeight = Math.max(1, Math.floor(canvas.clientHeight * devicePixelRatio));
+
+    const needsResize = canvas.width !== displayWidth || canvas.height !== displayHeight;
+    if (needsResize) {
+        canvas.width = displayWidth;
+        canvas.height = displayHeight;
+    }
+
+    return needsResize;
 }

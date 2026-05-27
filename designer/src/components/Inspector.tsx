@@ -1,10 +1,6 @@
-import type { EditorDocument } from "../editor/document";
-import type { SelectedObjectSnapshot } from "../editor/selection";
 import { NumberField } from "./NumberField";
 
 type InspectorProps = {
-  selectedObject: SelectedObjectSnapshot;
-  document: EditorDocument;
   onRectPropertyChange?: (
     property: "x" | "y" | "width" | "height",
     value: number,

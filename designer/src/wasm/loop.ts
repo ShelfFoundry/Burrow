@@ -5,7 +5,6 @@ export type OdinRenderLoop = {
 };
 
 export function createOdinRenderLoop(
-    canvas: HTMLCanvasElement,
     render: () => boolean,
 ): OdinRenderLoop {
     let running = false;

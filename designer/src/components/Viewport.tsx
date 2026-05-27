@@ -1,33 +1,14 @@
 import { onCleanup, onMount } from "solid-js";
-import { initWebGpu, resizeCanvasToDisplaySize } from "../gpu/webgpu";
-import { createViewportLoop, type ViewportLoop, type ViewportPointerEventKind } from "../gpu/viewport-loop";
-import type { EditorDocument } from "../editor/document";
-import type { RectEditableProperty, SelectedObjectSnapshot } from "../editor/selection";
-import { createEngine, waitForDesignerGpuReady, type Engine } from "../wasm/engine";
+import { createEngine, waitForDesignerGpuReady, resizeCanvasToDisplaySize, type Engine, type ViewportPointerEventKind } from "../wasm/engine";
 import { createOdinRenderLoop, type OdinRenderLoop } from "../wasm/loop";
 
-export type ViewportController = {
-  setSelectionRectProperty: (
-    property: RectEditableProperty,
-    value: number,
-  ) => boolean;
-  undo: () => boolean;
-  redo: () => boolean;
-  getDocumentRevision: () => number;
-  getSelectedObjectSnapshot: () => SelectedObjectSnapshot;
-};
-
 type ViewportProps = {
-  document: EditorDocument,
   onStatusChange: (message: string) => void;
-  onSelectedObjectChange: (snapshot: SelectedObjectSnapshot) => void;
-  onControllerReady?: (controller: ViewportController) => void;
   onDocumentRevisionChange?: (revision: number) => void;
 };
 
 export function Viewport(props: ViewportProps) {
   let canvasRef: HTMLCanvasElement | undefined;
-  let loop: ViewportLoop | undefined;
   let engine: Engine | undefined;
   let odinLoop: OdinRenderLoop | undefined;
   let handleResize: EventListener | undefined;
@@ -67,7 +48,7 @@ export function Viewport(props: ViewportProps) {
 
     window.addEventListener("resize", handleResize);
 
-    odinLoop = createOdinRenderLoop(canvas, () => {
+    odinLoop = createOdinRenderLoop(() => {
       if (!engine) {
         return false;
       }
@@ -82,56 +63,6 @@ export function Viewport(props: ViewportProps) {
     });
 
     odinLoop.start();
-  }
-
-  async function startPocRenderer(canvas: HTMLCanvasElement) {
-    const gpuState = await initWebGpu(canvas);
-    loop = createViewportLoop(
-      canvas,
-      gpuState,
-      props.document,
-      {
-        onSelectionChanged: (_selection, hit) => {
-          if (hit.kind === "object") {
-            props.onStatusChange(`Selected object: ${hit.object.id}: ${hit.object.name}`);
-          } else {
-            props.onStatusChange("No object selected");
-          }
-        },
-        onDocumentChanged: (event) => {
-          props.onSelectedObjectChange(event.selectedObject);
-          props.onDocumentRevisionChange?.(event.revision);
-        },
-        onInteractionHit: (hit) => {
-          if (hit.kind === "resize_handle") {
-            props.onStatusChange(`Resize handle ${hit.handleId} on object ${hit.objectId}`);
-          }
-          if (hit.kind === "object") {
-            props.onStatusChange(`Start move: object ${hit.objectId}`);
-          }
-        },
-      },
-      engine
-    );
-    loop.start();
-
-    props.onControllerReady?.({
-      setSelectionRectProperty: (property, value) => {
-        return loop?.setSelectedRectProperty(property, value) ?? false;
-      },
-      undo: () => {
-        return loop?.undo() ?? false;
-      },
-      redo: () => {
-        return loop?.redo() ?? false;
-      },
-      getDocumentRevision: () => {
-        return loop?.getDocumentRevision() ?? 0;
-      },
-      getSelectedObjectSnapshot: () => {
-        return loop?.getSelectedObjectSnapshot() ?? { kind: "none" };
-      },
-    });
   }
 
   function dumpOdinDebugInfo(engine: Engine, canvas: HTMLCanvasElement) {
@@ -197,13 +128,7 @@ export function Viewport(props: ViewportProps) {
 
     try {
       resizeCanvasToDisplaySize(canvas);
-
-      if (!location.search.includes("ts")) {
-        await startOdinRenderer(canvas);
-      } else {
-        await startPocRenderer(canvas);
-      }
-
+      await startOdinRenderer(canvas);
       props.onStatusChange("Ready");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown viewport error";
@@ -215,20 +140,19 @@ export function Viewport(props: ViewportProps) {
       const isRedo = (event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "z";
       if (isUndo) {
         event.preventDefault();
-        const ok = loop?.undo() ?? false;
-        props.onStatusChange(ok ? "Undo" : "Nothing to undo");
+        //const ok = loop?.undo() ?? false;
+        //props.onStatusChange(ok ? "Undo" : "Nothing to undo");
       }
       if (isRedo) {
         event.preventDefault();
-        const ok = loop?.redo() ?? false;
-        props.onStatusChange(ok ? "Redo" : "Nothing to redo");
+        //const ok = loop?.redo() ?? false;
+        //props.onStatusChange(ok ? "Redo" : "Nothing to redo");
       }
     });
 
   });
 
   onCleanup(() => {
-    loop?.stop();
     odinLoop?.stop();
     if (handleResize) window.removeEventListener("resize", handleResize);
   });
@@ -297,7 +221,6 @@ export function Viewport(props: ViewportProps) {
           }
 
           odinLoop?.requestRender();
-          loop?.handlePointerEvent(viewportEvent);
         }}
         onPointerMove={(event) => {
           const canvas = canvasRef;
@@ -311,9 +234,7 @@ export function Viewport(props: ViewportProps) {
             viewportEvent.buttons,
             engine.pointerModifiers(event),
           );
-
           odinLoop?.requestRender();
-          loop?.handlePointerEvent(viewportEvent);
         }}
         onPointerUp={(event) => {
           const canvas = canvasRef;
@@ -330,7 +251,6 @@ export function Viewport(props: ViewportProps) {
           );
 
           odinLoop?.requestRender();
-          loop?.handlePointerEvent(viewportEvent);
 
           if (canvas.hasPointerCapture(event.pointerId)) {
             canvas.releasePointerCapture(event.pointerId);
@@ -339,18 +259,15 @@ export function Viewport(props: ViewportProps) {
         onPointerCancel={(event) => {
           const canvas = canvasRef;
           if (!canvas) return;
-          const viewportEvent = toViewportPointerEvent("pointer_cancel", canvas, event);
           engine?.pointerCancel();
-          loop?.handlePointerEvent(viewportEvent);
           if (canvas.hasPointerCapture(event.pointerId)) {
             canvas.releasePointerCapture(event.pointerId);
           }
         }}
-        onPointerLeave={(event) => {
+        onPointerLeave={(_event) => {
           const canvas = canvasRef;
           if (!canvas) return;
           engine?.pointerLeave();
-          loop?.handlePointerEvent(toViewportPointerEvent("pointer_leave", canvas, event));
         }}
       />
     </section>
