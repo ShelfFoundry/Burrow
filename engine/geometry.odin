@@ -49,6 +49,23 @@ page_rect_to_screen :: proc(rect: Rect, transform: Viewport_Transform) -> Rect {
 	}
 }
 
+rect_right :: proc(rect: Rect) -> f32 {
+	return rect.x + rect.width
+}
+
+rect_bottom :: proc(rect: Rect) -> f32 {
+	return rect.y + rect.height
+}
+
+rect_union :: proc(a, b: Rect) -> Rect {
+	x0 := min_f32(a.x, b.x)
+	y0 := min_f32(a.y, b.y)
+	x1 := max_f32(rect_right(a), rect_right(b))
+	y1 := max_f32(rect_bottom(a), rect_bottom(b))
+
+	return Rect{x = x0, y = y0, width = x1 - x0, height = y1 - y0}
+}
+
 compute_initial_viewport :: proc(
 	canvas_size: Size,
 	page_size: Size,

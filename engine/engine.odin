@@ -231,9 +231,9 @@ engine_add_full_rect :: proc(
 engine_update_selection_from_current_pointer :: proc() -> i32 {
 	hit := engine_hit_test_current_pointer()
 
-	ctrl_down := (state.pointer.modifiers & MOD_CTRL) != 0
+	shift_down := (state.pointer.modifiers & MOD_SHIFT) != 0
 
-	if ctrl_down {
+	if shift_down {
 		if hit.kind == .Object {
 			selection_toggle(&state.selection, hit.object_id)
 			return i32(hit.object_id)

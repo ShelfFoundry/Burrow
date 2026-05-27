@@ -1033,19 +1033,16 @@ gpu_push_selection_vertices :: proc(
 		return true
 	}
 
-	for i in 0 ..< selection.count {
-		id := selection.ids[i]
-
-		object := document_get_object_by_id(document, id)
+	// Single selection: use object-specific selection rendering.
+	if selection.count == 1 {
+		object := document_get_object_by_id(document, selection.ids[0])
 
 		if object == nil {
-			continue
+			return true
 		}
 
-		ok := true
-
 		if object.kind == .Line {
-			ok = gpu_push_line_selection_vertices(
+			return gpu_push_line_selection_vertices(
 				vertices,
 				vertex_count,
 				object^,
@@ -1053,25 +1050,35 @@ gpu_push_selection_vertices :: proc(
 				viewport_width,
 				viewport_height,
 			)
-		} else {
-			bounds := object_bounds(object^)
-
-			ok = gpu_push_selection_outline_vertices(
-				vertices,
-				vertex_count,
-				bounds,
-				transform,
-				viewport_width,
-				viewport_height,
-			)
 		}
 
-		if !ok {
-			return false
-		}
+		bounds := object_bounds(object^)
+
+		return gpu_push_selection_outline_vertices(
+			vertices,
+			vertex_count,
+			bounds,
+			transform,
+			viewport_width,
+			viewport_height,
+		)
 	}
 
-	return true
+	// Multi-selection: draw one combined selection box.
+	bounds, ok := selection_bounds(document, selection)
+
+	if !ok {
+		return true
+	}
+
+	return gpu_push_selection_outline_vertices(
+		vertices,
+		vertex_count,
+		bounds,
+		transform,
+		viewport_width,
+		viewport_height,
+	)
 }
 
 gpu_push_line_selection_vertices :: proc(

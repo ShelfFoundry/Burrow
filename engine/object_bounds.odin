@@ -36,3 +36,32 @@ object_bounds :: proc(object: Editor_Object) -> Rect {
 
 	return Rect{}
 }
+
+selection_bounds :: proc(document: ^Editor_Document, selection: ^Selection_State) -> (Rect, bool) {
+	if document == nil || selection == nil || selection.count == 0 {
+		return Rect{}, false
+	}
+
+	has_bounds := false
+	result := Rect{}
+
+	for i in 0 ..< selection.count {
+		id := selection.ids[i]
+		object := document_get_object_by_id(document, id)
+
+		if object == nil {
+			continue
+		}
+
+		bounds := object_bounds(object^)
+
+		if !has_bounds {
+			result = bounds
+			has_bounds = true
+		} else {
+			result = rect_union(result, bounds)
+		}
+	}
+
+	return result, has_bounds
+}

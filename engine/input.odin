@@ -17,13 +17,6 @@ Pointer_State :: struct {
 	modifiers: i32,
 }
 
-Input_Modifier :: enum i32 {
-	Ctrl  = 1,
-	Shift = 2,
-	Alt   = 4,
-	Meta  = 8,
-}
-
 pointer_set_position :: proc(pointer: ^Pointer_State, x, y: f32, transform: Viewport_Transform) {
 	pointer.x = x
 	pointer.y = y
