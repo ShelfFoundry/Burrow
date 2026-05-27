@@ -50,7 +50,7 @@ engine_viewport_height :: proc() -> i32 {
 	return state.viewport_height
 }
 
-engine_is_initialzied :: proc() -> bool {
+engine_is_initialized :: proc() -> bool {
 	return state.initialized
 }
 

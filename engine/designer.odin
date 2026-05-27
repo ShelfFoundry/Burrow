@@ -13,7 +13,7 @@ designer_init :: proc(width: i32, height: i32) -> i32 {
 
 @(export)
 designer_is_initialized :: proc() -> i32 {
-	if engine_is_initialzied() {
+	if engine_is_initialized() {
 		return 1
 	}
 	return 0

@@ -10,22 +10,6 @@ type InspectorProps = {
 export function Inspector(props: InspectorProps) {
   return (
     <aside class="inspector-panel">
-      <div class="document-summary">
-        <h3>Document</h3>
-        <div class="property-row">
-          <span>Page</span>
-          <strong>
-            {props.document.page.width}×{props.document.page.height}
-          </strong>
-        </div>
-        <div class="property-row">
-          <span>Objects</span>
-          <strong>{props.document.objects.length}</strong>
-        </div>
-      </div>
-
-      <h2>Inspector</h2>
-
       {props.selectedObject.kind === "none" ? (
         <p class="muted">No selection</p>
       ) : props.selectedObject.kind === "rect" ? (

@@ -162,7 +162,7 @@ export async function createEngine(): Promise<Engine> {
     }
 
     function isInitialized(): boolean {
-        return wasm.exports.designer_is_initialzied() !== 0;
+        return wasm.exports.designer_is_initialized() !== 0;
     }
 
     function getViewportSize() {

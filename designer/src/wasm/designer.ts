@@ -3,7 +3,7 @@ export type DesignerWasmExports = {
 
     designer_version: () => number;
     designer_init: (width: number, height: number) => number;
-    designer_is_initialzied: () => number;
+    designer_is_initialized: () => number;
     designer_frame: () => number;
     designer_gpu_is_initialized: () => number;
 
