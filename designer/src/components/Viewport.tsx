@@ -61,7 +61,7 @@ export function Viewport(props: ViewportProps) {
     engine.addLine(
       0, 0, 100, 100,
       { r: 1, g: 0, b: 0, a: 1 },
-      4
+      1
     );
 
     renderOdinFrame(canvas);

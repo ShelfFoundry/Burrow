@@ -12,6 +12,7 @@ MAX_RENDER_VERTICES :: MAX_RENDER_PRIMITIVES * VERTICES_PER_PRIMITIVE
 
 SELECTION_STROKE_WIDTH_SCREEN :: 2.0
 SELECTION_COLOR :: [4]f32{0.1, 0.45, 1.0, 1.0}
+SELECTION_LINE_EXTRA_WIDTH_SCREEN :: 2.0
 
 Gpu_State :: struct {
 	initialized:             bool,
@@ -1041,16 +1042,29 @@ gpu_push_selection_vertices :: proc(
 			continue
 		}
 
-		bounds := object_bounds(object^)
+		ok := true
 
-		ok := gpu_push_selection_outline_vertices(
-			vertices,
-			vertex_count,
-			bounds,
-			transform,
-			viewport_width,
-			viewport_height,
-		)
+		if object.kind == .Line {
+			ok = gpu_push_line_selection_vertices(
+				vertices,
+				vertex_count,
+				object^,
+				transform,
+				viewport_width,
+				viewport_height,
+			)
+		} else {
+			bounds := object_bounds(object^)
+
+			ok = gpu_push_selection_outline_vertices(
+				vertices,
+				vertex_count,
+				bounds,
+				transform,
+				viewport_width,
+				viewport_height,
+			)
+		}
 
 		if !ok {
 			return false
@@ -1058,6 +1072,44 @@ gpu_push_selection_vertices :: proc(
 	}
 
 	return true
+}
+
+gpu_push_line_selection_vertices :: proc(
+	vertices: [^]Vertex,
+	vertex_count: ^int,
+	object: Editor_Object,
+	transform: Viewport_Transform,
+	viewport_width, viewport_height: f32,
+) -> bool {
+	p1_page := Point {
+		x = object.line.x1,
+		y = object.line.y1,
+	}
+	p2_page := Point {
+		x = object.line.x2,
+		y = object.line.y2,
+	}
+
+	p1_screen := page_to_screen(p1_page, transform)
+	p2_screen := page_to_screen(p2_page, transform)
+
+	// The line's own width is in page units, so scale it.
+	// The extra selection width is UI chrome, so keep it in screen pixels.
+	line_width_screen := object.line.stroke.width * transform.zoom
+	selection_width_screen := line_width_screen + SELECTION_LINE_EXTRA_WIDTH_SCREEN
+
+	return gpu_push_line_vertices(
+		vertices,
+		vertex_count,
+		p1_screen.x,
+		p1_screen.y,
+		p2_screen.x,
+		p2_screen.y,
+		selection_width_screen,
+		SELECTION_COLOR,
+		viewport_width,
+		viewport_height,
+	)
 }
 
 rgba_to_vertex_color :: proc(color: RGBA) -> [4]f32 {
