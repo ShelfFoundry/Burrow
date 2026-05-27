@@ -110,3 +110,22 @@ document_resize_rect_by_id :: proc(
 	rect_resize_from_handle(&object.rect, handle, dx, dy)
 	return true
 }
+
+document_set_rect_by_id :: proc(
+	document: ^Editor_Document,
+	id: Object_Id,
+	rect: Rect_Object,
+) -> bool {
+	object := document_get_object_by_id(document, id)
+
+	if object == nil {
+		return false
+	}
+
+	if object.kind != .Rect {
+		return false
+	}
+
+	object.rect = rect
+	return true
+}

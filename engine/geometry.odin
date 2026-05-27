@@ -138,6 +138,54 @@ distance_point_to_segment :: proc(point, a, b: Point) -> f32 {
 	return length_f32(dx, dy)
 }
 
+snap_point_to_45_from_anchor :: proc(anchor, target: Point) -> Point {
+	dx := target.x - anchor.x
+	dy := target.y - anchor.y
+
+	if abs_f32(dx) <= 0.0001 && abs_f32(dy) <= 0.0001 {
+		return target
+	}
+
+	abs_dx := abs_f32(dx)
+	abs_dy := abs_f32(dy)
+
+	sign_x: f32 = 0.0
+	sign_y: f32 = 0.0
+
+	if dx > 0.0 {
+		sign_x = 1.0
+	} else if dx < 0.0 {
+		sign_x = -1.0
+	}
+
+	if dy > 0.0 {
+		sign_y = 1.0
+	} else if dy < 0.0 {
+		sign_y = -1.0
+	}
+
+	// Decide whether this is mostly horizontal, mostly vertical, or diagonal.
+	//
+	// Ratio threshold approximates halfway between axis and diagonal.
+	// tan(22.5°) ≈ 0.4142.
+	threshold := f32(0.41421356)
+
+	if abs_dy <= abs_dx * threshold {
+		// Horizontal.
+		return Point{x = target.x, y = anchor.y}
+	}
+
+	if abs_dx <= abs_dy * threshold {
+		// Vertical.
+		return Point{x = anchor.x, y = target.y}
+	}
+
+	// Diagonal. Use the larger movement as the diagonal length.
+	magnitude := max_f32(abs_dx, abs_dy)
+
+	return Point{x = anchor.x + sign_x * magnitude, y = anchor.y + sign_y * magnitude}
+}
+
 min_f32 :: proc(a, b: f32) -> f32 {
 	if a < b {
 		return a

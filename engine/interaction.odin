@@ -1,6 +1,7 @@
 package designer
 
 MIN_RECT_SIZE :: 4.0
+MAX_RESIZE_SNAPSHOT_OBJECTS :: 128
 
 Interaction_Mode :: enum {
 	Idle,
@@ -18,6 +19,9 @@ Interaction_State :: struct {
 	active_object_id:     Object_Id,
 	resize_handle:        Resize_Handle,
 	line_handle:          Line_Handle,
+	group_resize:         Group_Resize_State,
+	start_rect:           Rect_Object,
+	has_start_rect:       bool,
 }
 
 Interaction_Result_Kind :: enum {
@@ -33,4 +37,19 @@ Interaction_Result :: struct {
 	object_id:     Object_Id,
 	resize_handle: Resize_Handle,
 	line_handle:   Line_Handle,
+}
+
+Resize_Object_Snapshot :: struct {
+	id:   Object_Id,
+	kind: Object_Kind,
+	rect: Rect_Object,
+	line: Line_Object,
+}
+
+Group_Resize_State :: struct {
+	active:         bool,
+	start_bounds:   Rect,
+	current_bounds: Rect,
+	count:          int,
+	objects:        [MAX_RESIZE_SNAPSHOT_OBJECTS]Resize_Object_Snapshot,
 }

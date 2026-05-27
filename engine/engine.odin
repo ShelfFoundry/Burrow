@@ -92,83 +92,6 @@ engine_recompute_viewport_transform :: proc() {
 	state.transform = compute_initial_viewport(canvas_size, page_size, 48.0)
 }
 
-engine_set_interaction_pointer_start :: proc() {
-	state.interaction.start_pointer_page = Point {
-		x = state.pointer.page_x,
-		y = state.pointer.page_y,
-	}
-	state.interaction.last_pointer_page = state.interaction.start_pointer_page
-
-	state.interaction.start_pointer_screen = Point {
-		x = state.pointer.x,
-		y = state.pointer.y,
-	}
-	state.interaction.last_pointer_screen = state.interaction.start_pointer_screen
-}
-
-engine_start_line_handle_interaction :: proc(active_object_id: Object_Id, handle: Line_Handle) {
-	state.interaction = Interaction_State{}
-	state.interaction.mode = .Line_Handle
-	state.interaction.line_handle = handle
-	state.interaction.active_object_id = active_object_id
-	engine_set_interaction_pointer_start()
-}
-
-engine_start_resize_interaction :: proc(active_object_id: Object_Id, handle: Resize_Handle) {
-	state.interaction = Interaction_State{}
-	state.interaction.mode = .Resize_Handle
-	state.interaction.resize_handle = handle
-	state.interaction.active_object_id = active_object_id
-	engine_set_interaction_pointer_start()
-}
-
-engine_drag_resize_handle_by_current_pointer :: proc() -> bool {
-	if state.interaction.mode != .Resize_Handle {
-		return false
-	}
-
-	if state.interaction.active_object_id == Object_Id(0) {
-		// Group resize comes later.
-		return false
-	}
-
-	if state.interaction.resize_handle == .None {
-		return false
-	}
-
-	current := Point {
-		x = state.pointer.page_x,
-		y = state.pointer.page_y,
-	}
-
-	dx := current.x - state.interaction.last_pointer_page.x
-	dy := current.y - state.interaction.last_pointer_page.y
-
-	if dx == 0.0 && dy == 0.0 {
-		return true
-	}
-
-	ok := document_resize_rect_by_id(
-		&state.document,
-		state.interaction.active_object_id,
-		state.interaction.resize_handle,
-		dx,
-		dy,
-	)
-
-	if !ok {
-		return false
-	}
-
-	state.interaction.last_pointer_page = current
-	state.interaction.last_pointer_screen = Point {
-		x = state.pointer.x,
-		y = state.pointer.y,
-	}
-
-	return true
-}
-
 engine_pointer_down_interaction :: proc() -> Interaction_Result {
 	// 1. Handles win.
 	hit := engine_hit_test_interaction_at_current_pointer()
@@ -470,12 +393,41 @@ engine_drag_line_handle_to_current_pointer :: proc() -> bool {
 		return false
 	}
 
+	object := document_get_object_by_id(&state.document, state.interaction.active_object_id)
+
+	if object == nil || object.kind != .Line {
+		return false
+	}
+
+	target := Point {
+		x = state.pointer.page_x,
+		y = state.pointer.page_y,
+	}
+
+	if engine_shift_down() {
+		anchor := Point{}
+
+		if state.interaction.line_handle == .Start {
+			anchor = Point {
+				x = object.line.x2,
+				y = object.line.y2,
+			}
+		} else if state.interaction.line_handle == .End {
+			anchor = Point {
+				x = object.line.x1,
+				y = object.line.y1,
+			}
+		}
+
+		target = snap_point_to_45_from_anchor(anchor, target)
+	}
+
 	return document_move_line_handle_by_id(
 		&state.document,
 		state.interaction.active_object_id,
 		state.interaction.line_handle,
-		state.pointer.page_x,
-		state.pointer.page_y,
+		target.x,
+		target.y,
 	)
 }
 
@@ -755,5 +707,9 @@ engine_debug_interaction_hit_line_handle :: proc() -> i32 {
 }
 
 engine_multi_select_modifier_down :: proc() -> bool {
+	return .Shift in state.pointer.modifiers
+}
+
+engine_shift_down :: proc() -> bool {
 	return .Shift in state.pointer.modifiers
 }
