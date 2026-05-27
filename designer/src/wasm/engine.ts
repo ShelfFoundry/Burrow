@@ -63,7 +63,6 @@ export type Engine = {
     pointerModifiers: (event: PointerEvent) => number;
 
     clearSelection(): void;
-    updateSelectionFromCurrentPointer(): number;
     selectionCount(): number;
     selectionIdAt(index: number): boolean;
     selectionContains(id: number): boolean;
@@ -116,6 +115,7 @@ export type Engine = {
     };
     debugHitTestPoint: (pageX: number, pageY: number) => number;
     getPointerDebugState: () => DesignerPointerDebugState;
+    debugInteractionHit: () => unknown;
 };
 
 export async function createEngine(): Promise<Engine> {
@@ -175,6 +175,7 @@ export async function createEngine(): Promise<Engine> {
         modifiers: number,
     ): void {
         wasm.exports.designer_pointer_down(x, y, button, buttons, modifiers);
+        wasm.exports.designer_pointer_down_interaction();
     }
 
     function pointerMove(
@@ -213,10 +214,6 @@ export async function createEngine(): Promise<Engine> {
         if (event.metaKey) modifiers |= 8;
 
         return modifiers;
-    }
-
-    function updateSelectionFromCurrentPointer() {
-        return wasm.exports.designer_update_selection_from_current_pointer();
     }
 
     function selectionCount(): number {
@@ -385,6 +382,15 @@ export async function createEngine(): Promise<Engine> {
         return wasm.exports.designer_gpu_surface_configured() !== 0;
     }
 
+    function debugInteractionHit() {
+        return {
+            kind: wasm.exports.designer_debug_interaction_hit_kind(),
+            objectId: wasm.exports.designer_debug_interaction_hit_object_id(),
+            resizeHandle: wasm.exports.designer_debug_interaction_hit_resize_handle(),
+            lineHandle: wasm.exports.designer_debug_interaction_hit_line_handle(),
+        };
+    }
+
     return {
         wasm,
         init,
@@ -420,11 +426,11 @@ export async function createEngine(): Promise<Engine> {
         debugHitTestCurrentPointer,
         debugHitTestPoint,
         clearSelection,
-        updateSelectionFromCurrentPointer,
         selectionContains,
         selectionIdAt,
         selectionCount,
         getSelectionIds,
+        debugInteractionHit,
     };
 }
 

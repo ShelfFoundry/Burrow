@@ -53,12 +53,12 @@ export type DesignerWasmExports = {
     designer_pointer_buttons: () => number;
     designer_pointer_is_down: () => number;
     designer_pointer_inside: () => number;
+    designer_pointer_down_interaction: () => number;
 
     designer_clear_selection: () => void;
-    designer_update_selection_from_current_pointer: ()=>number;
-    designer_selection_count: ()=>number;
-    designer_selection_id_at: (index:number)=>number;
-    designer_selection_contains:(id:number)=>number;
+    designer_selection_count: () => number;
+    designer_selection_id_at: (index: number) => number;
+    designer_selection_contains: (id: number) => number;
 
     designer_gpu_clear_frame: () => number;
     designer_render_document: () => number;
@@ -116,6 +116,10 @@ export type DesignerWasmExports = {
         pageX: number,
         pageY: number,
     ) => number;
+    designer_debug_interaction_hit_kind: () => number;
+    designer_debug_interaction_hit_object_id: () => number;
+    designer_debug_interaction_hit_resize_handle: () => number;
+    designer_debug_interaction_hit_line_handle: () => number;
 
     wgpu_alloc: (size: number) => number;
     wgpu_free: (ptr: number) => void;

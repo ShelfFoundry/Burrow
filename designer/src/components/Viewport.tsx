@@ -37,7 +37,6 @@ export function Viewport(props: ViewportProps) {
     }
 
     engine.configureGpuSurface(canvas.width, canvas.height);
-    engine.updateSelectionFromCurrentPointer();
     let ok = engine.renderDocument();
 
     if (DEBUG) dumpOdinDebugInfo(engine, canvas);
@@ -290,7 +289,7 @@ export function Viewport(props: ViewportProps) {
 
           if (DEBUG) {
             console.log("Selected object(s)", engine?.getSelectionIds())
-            console.log("Hit", engine?.debugHitTestCurrentPointer());
+            console.log("Hit", engine?.debugInteractionHit());
           }
 
           loop?.handlePointerEvent(viewportEvent);

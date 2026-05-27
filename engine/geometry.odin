@@ -97,6 +97,13 @@ point_in_rect :: proc(point: Point, rect: Rect) -> bool {
 	)
 }
 
+handle_hit_rect :: proc(center: Point) -> Rect {
+	size := f32(HANDLE_HIT_SIZE_SCREEN)
+	half := f32(size / 2.0)
+
+	return Rect{x = center.x - half, y = center.y - half, width = size, height = size}
+}
+
 distance_point_to_segment :: proc(point, a, b: Point) -> f32 {
 	ab_x := b.x - a.x
 	ab_y := b.y - a.y

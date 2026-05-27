@@ -18,6 +18,7 @@ HANDLE_SIZE_SCREEN :: 8.0
 HANDLE_STROKE_WIDTH_SCREEN :: 1.0
 HANDLE_FILL_COLOR :: [4]f32{1.0, 1.0, 1.0, 1.0}
 HANDLE_STROKE_COLOR :: [4]f32{0.1, 0.45, 1.0, 1.0}
+HANDLE_HIT_SIZE_SCREEN :: 12.0
 
 Gpu_State :: struct {
 	initialized:             bool,

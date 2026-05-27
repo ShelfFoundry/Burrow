@@ -1,15 +1,16 @@
 package designer
 
 Engine_State :: struct {
-	initialized:     bool,
-	viewport_width:  i32,
-	viewport_height: i32,
-	frame_count:     i32,
-	document:        Editor_Document,
-	transform:       Viewport_Transform,
-	pointer:         Pointer_State,
-	gpu:             Gpu_State,
-	selection:       Selection_State,
+	initialized:      bool,
+	viewport_width:   i32,
+	viewport_height:  i32,
+	frame_count:      i32,
+	document:         Editor_Document,
+	transform:        Viewport_Transform,
+	pointer:          Pointer_State,
+	gpu:              Gpu_State,
+	selection:        Selection_State,
+	last_interaction: Interaction_Result,
 }
 
 state: Engine_State
@@ -89,6 +90,39 @@ engine_recompute_viewport_transform :: proc() {
 	state.transform = compute_initial_viewport(canvas_size, page_size, 48.0)
 }
 
+engine_pointer_down_interaction :: proc() -> Interaction_Result {
+	hit := engine_hit_test_interaction_at_current_pointer()
+
+	if hit.kind == .Resize_Handle {
+		state.last_interaction = Interaction_Result {
+			kind          = .Resize_Handle,
+			object_id     = hit.object_id,
+			resize_handle = hit.resize_handle,
+		}
+
+		return state.last_interaction
+	}
+
+	if hit.kind == .Line_Handle {
+		state.last_interaction = Interaction_Result {
+			kind        = .Line_Handle,
+			object_id   = hit.object_id,
+			line_handle = hit.line_handle,
+		}
+
+		return state.last_interaction
+	}
+
+	changed_id := engine_update_selection_from_current_pointer()
+
+	state.last_interaction = Interaction_Result {
+		kind      = .Selection_Changed,
+		object_id = Object_Id(changed_id),
+	}
+
+	return state.last_interaction
+}
+
 engine_pointer_down :: proc(x, y: f32, button, buttons: i32, modifiers: i32) {
 	pointer_down(
 		&state.pointer,
@@ -166,6 +200,26 @@ engine_pointer_inside :: proc() -> i32 {
 	}
 
 	return 0
+}
+
+engine_hit_test_interaction_at_current_pointer :: proc() -> Hit_Result {
+	screen_point := Point {
+		x = state.pointer.x,
+		y = state.pointer.y,
+	}
+
+	handle_hit := hit_test_selection_handles(
+		&state.document,
+		&state.selection,
+		state.transform,
+		screen_point,
+	)
+
+	if handle_hit.kind != .None {
+		return handle_hit
+	}
+
+	return engine_hit_test_current_pointer()
 }
 
 engine_hit_test_point :: proc(page_x, page_y: f32) -> Hit_Result {
@@ -378,4 +432,24 @@ engine_debug_hit_test_point_object_id :: proc(page_x, page_y: f32) -> i32 {
 	}
 
 	return i32(hit.object_id)
+}
+
+engine_debug_interaction_hit_kind :: proc() -> i32 {
+	hit := engine_hit_test_interaction_at_current_pointer()
+	return i32(hit.kind)
+}
+
+engine_debug_interaction_hit_object_id :: proc() -> i32 {
+	hit := engine_hit_test_interaction_at_current_pointer()
+	return i32(hit.object_id)
+}
+
+engine_debug_interaction_hit_resize_handle :: proc() -> i32 {
+	hit := engine_hit_test_interaction_at_current_pointer()
+	return i32(hit.resize_handle)
+}
+
+engine_debug_interaction_hit_line_handle :: proc() -> i32 {
+	hit := engine_hit_test_interaction_at_current_pointer()
+	return i32(hit.line_handle)
 }

@@ -75,6 +75,12 @@ designer_pan_y :: proc() -> f32 {
 }
 
 @(export)
+designer_pointer_down_interaction :: proc() -> i32 {
+	result := engine_pointer_down_interaction()
+	return i32(result.kind)
+}
+
+@(export)
 designer_pointer_down :: proc(x, y: f32, button, buttons: i32, modifiers: i32) {
 	engine_pointer_down(x, y, button, buttons, modifiers)
 }
@@ -271,6 +277,26 @@ designer_gpu_surface_configured :: proc() -> i32 {
 	}
 
 	return 0
+}
+
+@(export)
+designer_debug_interaction_hit_kind :: proc() -> i32 {
+	return engine_debug_interaction_hit_kind()
+}
+
+@(export)
+designer_debug_interaction_hit_object_id :: proc() -> i32 {
+	return engine_debug_interaction_hit_object_id()
+}
+
+@(export)
+designer_debug_interaction_hit_resize_handle :: proc() -> i32 {
+	return engine_debug_interaction_hit_resize_handle()
+}
+
+@(export)
+designer_debug_interaction_hit_line_handle :: proc() -> i32 {
+	return engine_debug_interaction_hit_line_handle()
 }
 
 @(export)

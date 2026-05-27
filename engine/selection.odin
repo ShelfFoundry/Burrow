@@ -19,6 +19,12 @@ Resize_Handle :: enum {
 	W,
 }
 
+Line_Handle :: enum {
+	None,
+	Start,
+	End,
+}
+
 selection_clear :: proc(selection: ^Selection_State) {
 	selection.count = 0
 }
