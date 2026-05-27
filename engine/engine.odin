@@ -1,15 +1,15 @@
 package designer
 
 Engine_State :: struct {
-	initialized:        bool,
-	viewport_width:     i32,
-	viewport_height:    i32,
-	frame_count:        i32,
-	document:           Editor_Document,
-	transform:          Viewport_Transform,
-	pointer:            Pointer_State,
-	gpu:                Gpu_State,
-	selected_object_id: Object_Id,
+	initialized:     bool,
+	viewport_width:  i32,
+	viewport_height: i32,
+	frame_count:     i32,
+	document:        Editor_Document,
+	transform:       Viewport_Transform,
+	pointer:         Pointer_State,
+	gpu:             Gpu_State,
+	selection:       Selection_State,
 }
 
 state: Engine_State
@@ -89,16 +89,16 @@ engine_recompute_viewport_transform :: proc() {
 	state.transform = compute_initial_viewport(canvas_size, page_size, 48.0)
 }
 
-engine_pointer_down :: proc(x, y: f32, button, buttons: i32) {
-	pointer_down(&state.pointer, x, y, button, buttons, state.transform)
+engine_pointer_down :: proc(x, y: f32, button, buttons: i32, modifiers: i32) {
+	pointer_down(&state.pointer, x, y, button, buttons, state.transform, modifiers)
 }
 
-engine_pointer_move :: proc(x, y: f32, buttons: i32) {
-	pointer_move(&state.pointer, x, y, buttons, state.transform)
+engine_pointer_move :: proc(x, y: f32, buttons: i32, modifiers: i32) {
+	pointer_move(&state.pointer, x, y, buttons, state.transform, modifiers)
 }
 
-engine_pointer_up :: proc(x, y: f32, button, buttons: i32) {
-	pointer_up(&state.pointer, x, y, button, buttons, state.transform)
+engine_pointer_up :: proc(x, y: f32, button, buttons: i32, modifiers: i32) {
+	pointer_up(&state.pointer, x, y, button, buttons, state.transform, modifiers)
 }
 
 engine_pointer_cancel :: proc() {
@@ -227,32 +227,36 @@ engine_add_full_rect :: proc(
 	return i32(id)
 }
 
-engine_clear_selection :: proc() {
-	state.selected_object_id = Object_Id(0)
-}
-
-engine_has_selection :: proc() -> bool {
-	return state.selected_object_id != Object_Id(0)
-}
-
-engine_select_at_current_pointer :: proc() -> i32 {
+engine_update_selection_from_current_pointer :: proc() -> i32 {
 	hit := engine_hit_test_current_pointer()
 
+	ctrl_down := (state.pointer.modifiers & MOD_CTRL) != 0
+
+	if ctrl_down {
+		if hit.kind == .Object {
+			selection_toggle(&state.selection, hit.object_id)
+			return i32(hit.object_id)
+		}
+
+		// Ctrl-click empty space preserves selection.
+		return 0
+	}
+
 	if hit.kind == .Object {
-		engine_select_object(hit.object_id)
+		selection_replace(&state.selection, hit.object_id)
 		return i32(hit.object_id)
 	}
 
-	engine_clear_selection()
+	selection_clear(&state.selection)
 	return 0
 }
 
-engine_select_object :: proc(id: Object_Id) {
-	state.selected_object_id = id
+engine_clear_selection :: proc() {
+	selection_clear(&state.selection)
 }
 
-engine_get_selected_object_id :: proc() -> i32 {
-	return i32(state.selected_object_id)
+engine_has_selection :: proc() -> bool {
+	return state.selection.count > 0
 }
 
 engine_gpu_clear_frame :: proc() -> bool {

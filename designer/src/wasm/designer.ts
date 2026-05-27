@@ -25,12 +25,14 @@ export type DesignerWasmExports = {
         y: number,
         button: number,
         buttons: number,
+        modifiers: number,
     ) => void;
 
     designer_pointer_move: (
         x: number,
         y: number,
         buttons: number,
+        modifiers: number,
     ) => void;
 
     designer_pointer_up: (
@@ -38,6 +40,7 @@ export type DesignerWasmExports = {
         y: number,
         button: number,
         buttons: number,
+        modifiers: number,
     ) => void;
 
     designer_pointer_cancel: () => void;
@@ -50,9 +53,12 @@ export type DesignerWasmExports = {
     designer_pointer_buttons: () => number;
     designer_pointer_is_down: () => number;
     designer_pointer_inside: () => number;
-    designer_select_at_current_pointer: () => number;
-    designer_selected_object_id: () => number;
+
     designer_clear_selection: () => void;
+    designer_update_selection_from_current_pointer: ()=>number;
+    designer_selection_count: ()=>number;
+    designer_selection_id_at: (index:number)=>number;
+    designer_selection_contains:(id:number)=>number;
 
     designer_gpu_clear_frame: () => number;
     designer_render_document: () => number;

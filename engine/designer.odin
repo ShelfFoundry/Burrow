@@ -75,18 +75,18 @@ designer_pan_y :: proc() -> f32 {
 }
 
 @(export)
-designer_pointer_down :: proc(x, y: f32, button, buttons: i32) {
-	engine_pointer_down(x, y, button, buttons)
+designer_pointer_down :: proc(x, y: f32, button, buttons: i32, modifiers: i32) {
+	engine_pointer_down(x, y, button, buttons, modifiers)
 }
 
 @(export)
-designer_pointer_move :: proc(x, y: f32, buttons: i32) {
-	engine_pointer_move(x, y, buttons)
+designer_pointer_move :: proc(x, y: f32, buttons: i32, modifiers: i32) {
+	engine_pointer_move(x, y, buttons, modifiers)
 }
 
 @(export)
-designer_pointer_up :: proc(x, y: f32, button, buttons: i32) {
-	engine_pointer_up(x, y, button, buttons)
+designer_pointer_up :: proc(x, y: f32, button, buttons: i32, modifiers: i32) {
+	engine_pointer_up(x, y, button, buttons, modifiers)
 }
 
 @(export)
@@ -135,13 +135,31 @@ designer_pointer_inside :: proc() -> i32 {
 }
 
 @(export)
-designer_select_at_current_pointer :: proc() -> i32 {
-	return engine_select_at_current_pointer()
+designer_update_selection_from_current_pointer :: proc() -> i32 {
+	return engine_update_selection_from_current_pointer()
 }
 
 @(export)
-designer_selected_object_id :: proc() -> i32 {
-	return engine_get_selected_object_id()
+designer_selection_count :: proc() -> i32 {
+	return i32(state.selection.count)
+}
+
+@(export)
+designer_selection_id_at :: proc(index: i32) -> i32 {
+	if index < 0 || int(index) >= state.selection.count {
+		return 0
+	}
+
+	return i32(state.selection.ids[index])
+}
+
+@(export)
+designer_selection_contains :: proc(id: i32) -> i32 {
+	if selection_contains(&state.selection, Object_Id(id)) {
+		return 1
+	}
+
+	return 0
 }
 
 @(export)

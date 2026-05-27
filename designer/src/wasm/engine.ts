@@ -43,23 +43,31 @@ export type Engine = {
         y: number,
         button: number,
         buttons: number,
+        modifiers: number,
     ) => void;
     pointerMove: (
         x: number,
         y: number,
         buttons: number,
+        modifiers: number,
     ) => void;
     pointerUp: (
         x: number,
         y: number,
         button: number,
         buttons: number,
+        modifiers: number,
     ) => void;
     pointerCancel: () => void;
     pointerLeave: () => void;
-    selectAtCurrentPointer(): number;
-    getSelectedObjectId(): number;
+    pointerModifiers: (event: PointerEvent) => number;
+
     clearSelection(): void;
+    updateSelectionFromCurrentPointer(): number;
+    selectionCount(): number;
+    selectionIdAt(index: number): boolean;
+    selectionContains(id: number): boolean;
+    getSelectionIds(): number[];
 
     clearFrame: () => boolean;
     renderDocument: () => boolean;
@@ -164,16 +172,18 @@ export async function createEngine(): Promise<Engine> {
         y: number,
         button: number,
         buttons: number,
+        modifiers: number,
     ): void {
-        wasm.exports.designer_pointer_down(x, y, button, buttons);
+        wasm.exports.designer_pointer_down(x, y, button, buttons, modifiers);
     }
 
     function pointerMove(
         x: number,
         y: number,
         buttons: number,
+        modifiers: number,
     ): void {
-        wasm.exports.designer_pointer_move(x, y, buttons);
+        wasm.exports.designer_pointer_move(x, y, buttons, modifiers);
     }
 
     function pointerUp(
@@ -181,8 +191,9 @@ export async function createEngine(): Promise<Engine> {
         y: number,
         button: number,
         buttons: number,
+        modifiers: number,
     ): void {
-        wasm.exports.designer_pointer_up(x, y, button, buttons);
+        wasm.exports.designer_pointer_up(x, y, button, buttons, modifiers);
     }
 
     function pointerCancel(): void {
@@ -193,12 +204,43 @@ export async function createEngine(): Promise<Engine> {
         wasm.exports.designer_pointer_leave();
     }
 
-    function selectAtCurrentPointer():number {
-        return wasm.exports.designer_select_at_current_pointer();
+    function pointerModifiers(event: PointerEvent): number {
+        let modifiers = 0;
+
+        if (event.ctrlKey) modifiers |= 1;
+        if (event.shiftKey) modifiers |= 2;
+        if (event.altKey) modifiers |= 4;
+        if (event.metaKey) modifiers |= 8;
+
+        return modifiers;
     }
 
-    function getSelectedObjectId():number {
-        return wasm.exports.designer_selected_object_id();
+    function updateSelectionFromCurrentPointer() {
+        return wasm.exports.designer_update_selection_from_current_pointer();
+    }
+
+    function selectionCount(): number {
+        return wasm.exports.designer_selection_count();
+    }
+
+    function selectionIdAt(index: number): boolean {
+        return wasm.exports.designer_selection_id_at(index) !== 0;
+    }
+
+    function selectionContains(id: number): boolean {
+        return wasm.exports.designer_selection_contains(id) !== 0;
+    }
+
+    function getSelectionIds(): number[] {
+        const count = wasm.exports.designer_selection_count();
+        const ids: number[] = [];
+
+        for (let i = 0; i < count; i += 1) {
+            const id = wasm.exports.designer_selection_id_at(i);
+            if (id !== 0) ids.push(id);
+        }
+
+        return ids;
     }
 
     function clearSelection() {
@@ -359,6 +401,7 @@ export async function createEngine(): Promise<Engine> {
         pointerUp,
         pointerCancel,
         pointerLeave,
+        pointerModifiers,
         getPointerDebugState,
         isGpuInitializeid,
         clearFrame,
@@ -376,9 +419,12 @@ export async function createEngine(): Promise<Engine> {
         getFirstObjectBounds,
         debugHitTestCurrentPointer,
         debugHitTestPoint,
-        selectAtCurrentPointer,
-        getSelectedObjectId,
         clearSelection,
+        updateSelectionFromCurrentPointer,
+        selectionContains,
+        selectionIdAt,
+        selectionCount,
+        getSelectionIds,
     };
 }
 

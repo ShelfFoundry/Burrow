@@ -1,14 +1,27 @@
 package designer
 
+MOD_CTRL :: 1
+MOD_SHIFT :: 2
+MOD_ALT :: 4
+MOD_META :: 8
+
 Pointer_State :: struct {
-	x:       f32,
-	y:       f32,
-	page_x:  f32,
-	page_y:  f32,
-	button:  i32,
-	buttons: i32,
-	is_down: bool,
-	inside:  bool,
+	x:         f32,
+	y:         f32,
+	page_x:    f32,
+	page_y:    f32,
+	button:    i32,
+	buttons:   i32,
+	is_down:   bool,
+	inside:    bool,
+	modifiers: i32,
+}
+
+Input_Modifier :: enum i32 {
+	Ctrl  = 1,
+	Shift = 2,
+	Alt   = 4,
+	Meta  = 8,
 }
 
 pointer_set_position :: proc(pointer: ^Pointer_State, x, y: f32, transform: Viewport_Transform) {
@@ -26,6 +39,7 @@ pointer_down :: proc(
 	x, y: f32,
 	button, buttons: i32,
 	transform: Viewport_Transform,
+	modifiers: i32,
 ) {
 	pointer_set_position(pointer, x, y, transform)
 
@@ -33,6 +47,7 @@ pointer_down :: proc(
 	pointer.buttons = buttons
 	pointer.is_down = true
 	pointer.inside = true
+	pointer.modifiers = modifiers
 }
 
 pointer_move :: proc(
@@ -40,6 +55,7 @@ pointer_move :: proc(
 	x, y: f32,
 	buttons: i32,
 	transform: Viewport_Transform,
+	modifiers: i32,
 ) {
 	pointer_set_position(pointer, x, y, transform)
 
@@ -47,6 +63,7 @@ pointer_move :: proc(
 	pointer.buttons = buttons
 	pointer.is_down = buttons != 0
 	pointer.inside = true
+	pointer.modifiers = modifiers
 }
 
 pointer_up :: proc(
@@ -54,6 +71,7 @@ pointer_up :: proc(
 	x, y: f32,
 	button, buttons: i32,
 	transform: Viewport_Transform,
+	modifiers: i32,
 ) {
 	pointer_set_position(pointer, x, y, transform)
 
@@ -61,6 +79,7 @@ pointer_up :: proc(
 	pointer.buttons = buttons
 	pointer.is_down = false
 	pointer.inside = true
+	pointer.modifiers = modifiers
 }
 
 pointer_cancel :: proc(pointer: ^Pointer_State) {

@@ -281,10 +281,13 @@ export function Viewport(props: ViewportProps) {
             viewportEvent.y,
             viewportEvent.button,
             viewportEvent.buttons,
+            engine.pointerModifiers(event),
           );
 
+          engine?.updateSelectionFromCurrentPointer();
+
           if (DEBUG) {
-            console.log("Selected object id", engine?.selectAtCurrentPointer())
+            console.log("Selected object(s)", engine?.getSelectionIds())
             console.log("Hit", engine?.debugHitTestCurrentPointer());
           }
 
@@ -300,6 +303,7 @@ export function Viewport(props: ViewportProps) {
             viewportEvent.x,
             viewportEvent.y,
             viewportEvent.buttons,
+            engine.pointerModifiers(event),
           );
 
           loop?.handlePointerEvent(viewportEvent);
@@ -314,7 +318,8 @@ export function Viewport(props: ViewportProps) {
             viewportEvent.x,
             viewportEvent.y,
             viewportEvent.button,
-            viewportEvent.buttons
+            viewportEvent.buttons,
+            engine.pointerModifiers(event),
           );
 
           loop?.handlePointerEvent(viewportEvent);
