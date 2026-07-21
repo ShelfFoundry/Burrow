@@ -8,6 +8,7 @@ body,
   width: 100%;
   height: 100%;
   margin: 0;
+  overflow: hidden;
 }
 
 body {
@@ -71,14 +72,13 @@ button:hover {
 }
 
 .main-layout {
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  display: block;
+  position: relative;
 }
 
 .viewport-panel {
-  min-width: 0;
-  min-height: 0;
+  width: 100%;
+  height: 100%;
   background: #2b2c2f;
 }
 
@@ -88,18 +88,6 @@ button:hover {
   display: block;
   background: transparent;
   touch-action: none;
-}
-
-.inspector-panel {
-  border-left: 1px solid #3c4043;
-  background: #202124;
-  padding: 16px;
-  overflow: auto;
-}
-
-.inspector-panel h2 {
-  margin: 0 0 16px;
-  font-size: 16px;
 }
 
 .muted {
@@ -177,21 +165,4 @@ button:hover {
 .number-field input:focus {
   outline: 2px solid #4c8bf5;
   outline-offset: 1px;
-}
-
-.inspector-form {
-  display: grid;
-  gap: 12px;
-}
-
-.inspector-section {
-  display: grid;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.inspector-section-title {
-  margin: 0;
-  font-size: 13px;
-  color: #f1f3f4;
 }

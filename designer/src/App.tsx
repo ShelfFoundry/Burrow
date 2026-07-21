@@ -2,6 +2,7 @@ import { createSignal } from 'solid-js';
 import { Toolbar } from './components/Toolbar';
 import { Viewport } from './components/Viewport';
 import { StatusBar } from './components/StatusBar';
+import { PropertiesPanel } from './components/PropertiesPanel';
 
 export default function App() {
   const [status, setStatus] = createSignal("Ready");
@@ -27,6 +28,7 @@ export default function App() {
           onStatusChange={setStatus}
           onDocumentRevisionChange={setDocumentRevision}
         />
+        <PropertiesPanel/>
       </main>
 
       <StatusBar message={status()} />
