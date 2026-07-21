@@ -18,22 +18,8 @@ body {
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  background: #202124;
-  color: #f1f3f4;
-}
-
-button {
-  font: inherit;
-  border: 1px solid #5f6368;
-  background: #303134;
-  color: #f1f3f4;
-  border-radius: 6px;
-  padding: 6px 12px;
-  cursor: pointer;
-}
-
-button:hover {
-  background: #3c4043;
+  background: var(--grey-950);
+  color: var(--grey-200);
 }
 
 .app-shell {
@@ -42,44 +28,10 @@ button:hover {
   grid-template-rows: 52px 1fr 28px;
 }
 
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-  border-bottom: 1px solid #3c4043;
-  background: #171717;
-}
-
-.toolbar-title {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.app-name {
-  font-weight: 700;
-}
-
-.app-subtitle {
-  font-size: 12px;
-  color: #9aa0a6;
-}
-
-.toolbar-actions {
-  display: flex;
-  gap: 8px;
-}
-
 .main-layout {
   display: block;
   position: relative;
-}
-
-.viewport-panel {
-  width: 100%;
-  height: 100%;
-  background: #2b2c2f;
+  background: var(--grey-950);
 }
 
 .viewport-canvas {
@@ -88,81 +40,4 @@ button:hover {
   display: block;
   background: transparent;
   touch-action: none;
-}
-
-.muted {
-  color: #9aa0a6;
-}
-
-.property-list {
-  display: grid;
-  gap: 8px;
-}
-
-.property-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 8px 0;
-  border-bottom: 1px solid #3c4043;
-}
-
-.property-row span {
-  color: #9aa0a6;
-}
-
-.status-bar {
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  border-top: 1px solid #3c4043;
-  background: #171717;
-  color: #9aa0a6;
-  font-size: 12px;
-}
-
-.panel-divider {
-  border: 0;
-  border-top: 1px solid #3c4043;
-  margin: 16px 0;
-}
-
-.wasm-status {
-  font-size: 12px;
-  color: #9aa0a6;
-  line-height: 1.4;
-}
-
-.document-summary h3 {
-  margin: 0 0 8px;
-  font-size: 14px;
-}
-
-.document-summary {
-  margin-bottom: 16px;
-}
-
-.number-field {
-  display: grid;
-  gap: 4px;
-}
-
-.number-field span {
-  color: #9aa0a6;
-  font-size: 12px;
-}
-
-.number-field input {
-  width: 100%;
-  font: inherit;
-  color: #f1f3f4;
-  background: #303134;
-  border: 1px solid #5f6368;
-  border-radius: 6px;
-  padding: 6px 8px;
-}
-
-.number-field input:focus {
-  outline: 2px solid #4c8bf5;
-  outline-offset: 1px;
 }

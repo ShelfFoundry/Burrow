@@ -1,3 +1,5 @@
+import '../styles/status-bar.css';
+
 type StatusBarProps = {
   message: string;
 };

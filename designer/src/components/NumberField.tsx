@@ -1,3 +1,4 @@
+import '../styles/number-field.css';
 import { createEffect, createSignal } from "solid-js";
 
 type NumberFieldProps = {

@@ -1,3 +1,5 @@
+import '../styles/toolbar.css';
+
 type ToolbarProps = {
   onSave: () => void;
   onPreview: () => void;

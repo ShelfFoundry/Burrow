@@ -194,82 +194,80 @@ export function Viewport(props: ViewportProps) {
   }
 
   return (
-    <section class="viewport-panel">
-      <canvas
-        id="designer-canvas"
-        ref={canvasRef}
-        class="viewport-canvas"
-        tabindex={0}
-        onPointerDown={(event) => {
-          const canvas = canvasRef;
-          if (!canvas) return;
+    <canvas
+      id="designer-canvas"
+      ref={canvasRef}
+      class="viewport-canvas"
+      tabindex={0}
+      onPointerDown={(event) => {
+        const canvas = canvasRef;
+        if (!canvas) return;
 
-          canvas.setPointerCapture(event.pointerId);
-          const viewportEvent = toViewportPointerEvent("pointer_down", canvas, event);
+        canvas.setPointerCapture(event.pointerId);
+        const viewportEvent = toViewportPointerEvent("pointer_down", canvas, event);
 
-          engine?.pointerDown(
-            viewportEvent.x,
-            viewportEvent.y,
-            viewportEvent.button,
-            viewportEvent.buttons,
-            engine.pointerModifiers(event),
-          );
+        engine?.pointerDown(
+          viewportEvent.x,
+          viewportEvent.y,
+          viewportEvent.button,
+          viewportEvent.buttons,
+          engine.pointerModifiers(event),
+        );
 
-          if (DEBUG) {
-            console.log("Selected object(s)", engine?.getSelectionIds())
-            console.log("Hit", engine?.debugInteractionHit());
-          }
+        if (DEBUG) {
+          console.log("Selected object(s)", engine?.getSelectionIds())
+          console.log("Hit", engine?.debugInteractionHit());
+        }
 
-          odinLoop?.requestRender();
-        }}
-        onPointerMove={(event) => {
-          const canvas = canvasRef;
-          if (!canvas) return;
+        odinLoop?.requestRender();
+      }}
+      onPointerMove={(event) => {
+        const canvas = canvasRef;
+        if (!canvas) return;
 
-          const viewportEvent = toViewportPointerEvent("pointer_move", canvas, event);
+        const viewportEvent = toViewportPointerEvent("pointer_move", canvas, event);
 
-          engine?.pointerMove(
-            viewportEvent.x,
-            viewportEvent.y,
-            viewportEvent.buttons,
-            engine.pointerModifiers(event),
-          );
-          odinLoop?.requestRender();
-        }}
-        onPointerUp={(event) => {
-          const canvas = canvasRef;
-          if (!canvas) return;
+        engine?.pointerMove(
+          viewportEvent.x,
+          viewportEvent.y,
+          viewportEvent.buttons,
+          engine.pointerModifiers(event),
+        );
+        odinLoop?.requestRender();
+      }}
+      onPointerUp={(event) => {
+        const canvas = canvasRef;
+        if (!canvas) return;
 
-          const viewportEvent = toViewportPointerEvent("pointer_up", canvas, event);
+        const viewportEvent = toViewportPointerEvent("pointer_up", canvas, event);
 
-          engine?.pointerUp(
-            viewportEvent.x,
-            viewportEvent.y,
-            viewportEvent.button,
-            viewportEvent.buttons,
-            engine.pointerModifiers(event),
-          );
+        engine?.pointerUp(
+          viewportEvent.x,
+          viewportEvent.y,
+          viewportEvent.button,
+          viewportEvent.buttons,
+          engine.pointerModifiers(event),
+        );
 
-          odinLoop?.requestRender();
+        odinLoop?.requestRender();
 
-          if (canvas.hasPointerCapture(event.pointerId)) {
-            canvas.releasePointerCapture(event.pointerId);
-          }
-        }}
-        onPointerCancel={(event) => {
-          const canvas = canvasRef;
-          if (!canvas) return;
-          engine?.pointerCancel();
-          if (canvas.hasPointerCapture(event.pointerId)) {
-            canvas.releasePointerCapture(event.pointerId);
-          }
-        }}
-        onPointerLeave={(_event) => {
-          const canvas = canvasRef;
-          if (!canvas) return;
-          engine?.pointerLeave();
-        }}
-      />
-    </section>
+        if (canvas.hasPointerCapture(event.pointerId)) {
+          canvas.releasePointerCapture(event.pointerId);
+        }
+      }}
+      onPointerCancel={(event) => {
+        const canvas = canvasRef;
+        if (!canvas) return;
+        engine?.pointerCancel();
+        if (canvas.hasPointerCapture(event.pointerId)) {
+          canvas.releasePointerCapture(event.pointerId);
+        }
+      }}
+      onPointerLeave={(_event) => {
+        const canvas = canvasRef;
+        if (!canvas) return;
+        engine?.pointerLeave();
+      }}
+    />
   );
 }

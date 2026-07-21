@@ -1,0 +1,24 @@
+.number-field {
+    display: grid;
+    gap: 4px;
+
+    span {
+        color: #9aa0a6;
+        font-size: 12px;
+    }
+
+    input {
+        width: 100%;
+        font: inherit;
+        color: #f1f3f4;
+        background: #303134;
+        border: 1px solid #5f6368;
+        border-radius: 6px;
+        padding: 6px 8px;
+
+        &:focus {
+            outline: 2px solid #4c8bf5;
+            outline-offset: 1px;
+        }
+    }
+}

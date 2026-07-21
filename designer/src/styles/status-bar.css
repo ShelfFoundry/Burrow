@@ -1,0 +1,9 @@
+.status-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 calc(var(--unit) * 2);
+  border-top: var(--border);
+  background: var(--grey-950);
+  color: var(--grey-400);
+  font-size: 0.75rem;
+}
