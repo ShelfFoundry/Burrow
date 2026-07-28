@@ -1,4 +1,4 @@
-import { createSignal } from 'solid-js';
+import { createEffect, createSignal } from 'solid-js';
 import { Toolbar } from './components/Toolbar';
 import { Viewport } from './components/Viewport';
 import { StatusBar } from './components/StatusBar';

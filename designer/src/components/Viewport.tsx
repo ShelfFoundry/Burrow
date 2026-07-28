@@ -1,4 +1,4 @@
-import { onCleanup, onMount } from "solid-js";
+import { createEffect, onCleanup, onMount } from "solid-js";
 import { createEngine, waitForDesignerGpuReady, resizeCanvasToDisplaySize, type Engine, type ViewportPointerEventKind } from "../wasm/engine";
 import { createOdinRenderLoop, type OdinRenderLoop } from "../wasm/loop";
 
