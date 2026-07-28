@@ -3,6 +3,7 @@ import '../styles/properties-panel.css';
 import { NumberField } from "./NumberField";
 
 type PropertiesPanelProps = {
+  selectionIds: number[],
   onRectPropertyChange?: (
     property: "x" | "y" | "width" | "height",
     value: number,
@@ -10,6 +11,7 @@ type PropertiesPanelProps = {
 };
 
 export function PropertiesPanel(props: PropertiesPanelProps) {
+  if (!props.selectionIds.length) return;
   return (
     <aside class="properties-panel">
       <div>

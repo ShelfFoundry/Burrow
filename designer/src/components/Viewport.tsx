@@ -5,6 +5,7 @@ import { createOdinRenderLoop, type OdinRenderLoop } from "../wasm/loop";
 type ViewportProps = {
   onStatusChange: (message: string) => void;
   onDocumentRevisionChange?: (revision: number) => void;
+  onSelectionChange: (selectionIds: number[]) => void;
 };
 
 export function Viewport(props: ViewportProps) {
@@ -214,8 +215,11 @@ export function Viewport(props: ViewportProps) {
           engine.pointerModifiers(event),
         );
 
+        const selectionIds = engine?.getSelectionIds() ?? [];
+        props.onSelectionChange(selectionIds);
+
         if (DEBUG) {
-          console.log("Selected object(s)", engine?.getSelectionIds())
+          console.log("Selected object(s)", selectionIds);
           console.log("Hit", engine?.debugInteractionHit());
         }
 

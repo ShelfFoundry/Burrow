@@ -7,6 +7,7 @@ import { PropertiesPanel } from './components/PropertiesPanel';
 export default function App() {
   const [status, setStatus] = createSignal("Ready");
   const [_documentRevision, setDocumentRevision] = createSignal(0);
+  const [selectionIds, setSelectionIds] = createSignal<number[]>([]);
 
   return (
     <div class="app-shell">
@@ -27,8 +28,9 @@ export default function App() {
         <Viewport
           onStatusChange={setStatus}
           onDocumentRevisionChange={setDocumentRevision}
+          onSelectionChange={setSelectionIds}
         />
-        <PropertiesPanel/>
+        <PropertiesPanel selectionIds={selectionIds()} />
       </main>
 
       <StatusBar message={status()} />
