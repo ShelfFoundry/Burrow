@@ -4,6 +4,7 @@
     --round-lg: 1rem;
 
     --unit: 0.375rem; /* 6px */
+    --unit-half: calc(var(--unit) * 0.5);
     --gap: calc(var(--unit) * 2); /* 12px */
     --gap-2: calc(var(--unit) * 4); /* 24px */
     --pad: calc(var(--unit) * 2);
