@@ -2,15 +2,38 @@
   position: absolute;
   max-height: calc(100% - 0.75rem * 2);
   border-radius: var(--round-md);
-  top: calc(var(--unit) * 2);
-  right: calc(var(--unit) * 2);
+  top: var(--gap);
+  right: var(--gap);
   width: 250px;
   border: var(--border);
   background: #202124;
-  padding: 16px;
+  padding: var(--pad) 0;
+  display: grid;
+  grid-template-rows: 1fr;
+  gap: var(--unit);
 
-  h2 {
-    margin: 0 0 16px;
-    font-size: 16px;
+  & > div {
+    padding: 0 var(--pad);
+  }
+
+  .col-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--unit);
+  }
+
+  hr{
+    display: block;
+    width: 100%;
+    border: none;
+    border-bottom: var(--border);
+  }
+
+  .group-label {
+    font-size: 0.75rem;
+    color: var(--grey-400);
+    display: block;
+    margin-bottom: var(--unit);
+    font-weight: 500;
   }
 }

@@ -2,8 +2,9 @@ import '../styles/number-field.css';
 import { createEffect, createSignal } from "solid-js";
 
 type NumberFieldProps = {
-  label: string;
+  label?: string;
   value: number;
+  icon?: string;
   onValueChange?: (value: number) => void;
 };
 
@@ -14,9 +15,26 @@ export function NumberField(props: NumberFieldProps) {
     setText(formatNumber(props.value));
   });
 
+  function renderLabel() {
+    if (props?.label?.length) {
+      return (
+          <span>{props.label}</span>
+      )
+    }
+  }
+
+  function renderIcon() {
+    if (props?.icon?.length) {
+      return (
+        <i innerHTML={props.icon}></i>
+      )
+    }
+  }
+
   return (
     <label class="number-field">
-      <span>{props.label}</span>
+      {renderLabel()}
+      {renderIcon()}
       <input
         type="text"
         inputMode="decimal"
