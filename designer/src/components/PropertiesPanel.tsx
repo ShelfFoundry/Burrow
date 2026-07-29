@@ -1,10 +1,22 @@
-import { Show } from 'solid-js';
-import { ICON_ALIGN_B, ICON_ALIGN_H, ICON_ALIGN_L, ICON_ALIGN_R, ICON_ALIGN_T, ICON_ALIGN_V, ICON_H, ICON_W, ICON_X, ICON_Y } from '../icons';
-import '../styles/properties-panel.css';
+import { Show } from "solid-js";
+import {
+  ICON_ALIGN_B,
+  ICON_ALIGN_H,
+  ICON_ALIGN_L,
+  ICON_ALIGN_R,
+  ICON_ALIGN_T,
+  ICON_ALIGN_V,
+  ICON_H,
+  ICON_W,
+  ICON_X,
+  ICON_Y,
+} from "../icons";
+import "../styles/properties-panel.css";
 import { NumberField } from "./NumberField";
+import { ColorField } from "./ColorField";
 
 type PropertiesPanelProps = {
-  selectionIds: number[],
+  selectionIds: number[];
   onRectPropertyChange?: (
     property: "x" | "y" | "width" | "height",
     value: number,
@@ -41,7 +53,7 @@ export function PropertiesPanel(props: PropertiesPanelProps) {
             </div>
           </div>
         </div>
-        <hr/>
+        <hr />
         <div>
           <span class="group-label">Dimensions</span>
           <div class="col-2">
@@ -53,11 +65,12 @@ export function PropertiesPanel(props: PropertiesPanelProps) {
             </div>
           </div>
         </div>
-        <hr/>
+        <hr />
         <div>
           <span class="group-label">Fill</span>
+          <ColorField value={"#000000"} />
         </div>
-        <hr/>
+        <hr />
         <div>
           <span class="group-label">Border</span>
         </div>

@@ -1,0 +1,48 @@
+.color-field {
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+
+  & > span {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--grey-400);
+    font-size: 12px;
+  }
+
+  & > div {
+    display: inline-flex;
+    width: 100%;
+    flex-flow: row nowrap;
+    align-items: center;
+    background-color: var(--input-bg);
+    border-radius: var(--round);
+    padding: 5px 8px 5px 5px;
+    height: 24px;
+
+    & > span {
+      color: var(--grey-50);
+      height: 24px;
+      line-height: 24px;
+      font-size: 0.875rem;
+    }
+  }
+
+  i {
+    display: inline-block;
+    margin-right: 5px;
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    border: var(--border);
+  }
+
+  input {
+    width: 0;
+    height: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+  }
+}
