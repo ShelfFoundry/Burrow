@@ -31,7 +31,7 @@
 
   .group-label {
     font-size: 10px;
-    color: var(--grey-400);
+    color: var(--grey-300);
     display: block;
     margin-bottom: var(--unit);
     font-weight: 500;

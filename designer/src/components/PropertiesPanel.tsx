@@ -74,6 +74,10 @@ export function PropertiesPanel(props: PropertiesPanelProps) {
         <hr />
         <div>
           <span class="group-label">Border</span>
+          <div class="col-2">
+            <ColorField value={"#000000"} label="Stroke" />
+            <NumberField value={0} label="Weight" />
+          </div>
         </div>
       </aside>
     </Show>
