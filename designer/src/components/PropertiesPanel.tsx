@@ -14,6 +14,7 @@ import {
 import "../styles/properties-panel.css";
 import { NumberField } from "./NumberField";
 import { ColorField } from "./ColorField";
+import { ButtonGroup } from "./ButtonGroup";
 
 type PropertiesPanelProps = {
   selectionIds: number[];
@@ -30,16 +31,16 @@ export function PropertiesPanel(props: PropertiesPanelProps) {
         <div>
           <span class="group-label">Alignment</span>
           <div class="alignment">
-            <button-group>
+            <ButtonGroup>
               <button innerHTML={ICON_ALIGN_L}></button>
               <button innerHTML={ICON_ALIGN_H}></button>
               <button innerHTML={ICON_ALIGN_R}></button>
-            </button-group>
-            <button-group>
+            </ButtonGroup>
+            <ButtonGroup>
               <button innerHTML={ICON_ALIGN_T}></button>
               <button innerHTML={ICON_ALIGN_V}></button>
               <button innerHTML={ICON_ALIGN_B}></button>
-            </button-group>
+            </ButtonGroup>
           </div>
         </div>
         <div>
