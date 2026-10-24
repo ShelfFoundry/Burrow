@@ -294,9 +294,9 @@ gpu_init :: proc(gpu: ^Gpu_State) -> bool {
 	gpu.initialized = false
 
 	gpu.clear_color = RGBA {
-		r = 0.16,
-		g = 0.17,
-		b = 0.18,
+		r = 0.161,
+		g = 0.145,
+		b = 0.141,
 		a = 1.0,
 	}
 
