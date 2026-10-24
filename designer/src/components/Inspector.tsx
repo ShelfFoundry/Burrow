@@ -1,8 +1,17 @@
+import type { SetStoreFunction } from "solid-js/store";
+import type { RectEditableProperty, SelectedObjectSnapshot } from "../wasm/engine";
+import type { TemplateSettings } from "../template/settings";
+import { LivePreview } from "./LivePreview";
 import { NumberField } from "./NumberField";
+import { TemplateSettingsPanel } from "./TemplateSettingsPanel";
 
 type InspectorProps = {
+  selectedObject: SelectedObjectSnapshot;
+  templateSettings: TemplateSettings;
+  setTemplateSettings: SetStoreFunction<TemplateSettings>;
+  onStatusChange?: (message: string) => void;
   onRectPropertyChange?: (
-    property: "x" | "y" | "width" | "height",
+    property: RectEditableProperty,
     value: number,
   ) => void;
 };
@@ -10,8 +19,16 @@ type InspectorProps = {
 export function Inspector(props: InspectorProps) {
   return (
     <aside class="inspector-panel">
+      <LivePreview settings={props.templateSettings} />
+
       {props.selectedObject.kind === "none" ? (
-        <p class="muted">No selection</p>
+        <TemplateSettingsPanel
+          settings={props.templateSettings}
+          setSettings={props.setTemplateSettings}
+          onStatusChange={props.onStatusChange}
+        />
+      ) : props.selectedObject.kind === "multiple" ? (
+        <p class="muted">{props.selectedObject.count} objects selected</p>
       ) : props.selectedObject.kind === "rect" ? (
         <div class="inspector-form">
           <div class="property-list">

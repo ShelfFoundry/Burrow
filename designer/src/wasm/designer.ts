@@ -62,6 +62,24 @@ export type DesignerWasmExports = {
     designer_selection_id_at: (index: number) => number;
     designer_selection_contains: (id: number) => number;
 
+    designer_object_kind: (id: number) => number;
+    designer_object_name_id: (id: number) => number;
+    designer_object_rect_x: (id: number) => number;
+    designer_object_rect_y: (id: number) => number;
+    designer_object_rect_width: (id: number) => number;
+    designer_object_rect_height: (id: number) => number;
+    designer_object_line_x1: (id: number) => number;
+    designer_object_line_y1: (id: number) => number;
+    designer_object_line_x2: (id: number) => number;
+    designer_object_line_y2: (id: number) => number;
+    designer_set_rect_geometry: (
+        id: number,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+    ) => number;
+
     designer_gpu_clear_frame: () => number;
     designer_render_document: () => number;
     designer_clear_objects: () => void;

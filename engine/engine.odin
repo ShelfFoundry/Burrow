@@ -22,7 +22,7 @@ engine_init :: proc(width: i32, height: i32) {
 	state.viewport_height = height
 	state.frame_count = 0
 
-	document_init_blank(&state.document, 612.0, 792.0)
+	document_init_blank(&state.document, 672.0, 960.0)
 	engine_recompute_viewport_transform()
 	gpu_init(&state.gpu)
 	engine_clear_interaction()
@@ -587,6 +587,14 @@ engine_clear_selection :: proc() {
 
 engine_has_selection :: proc() -> bool {
 	return state.selection.count > 0
+}
+
+engine_get_object :: proc(id: i32) -> ^Editor_Object {
+	return document_get_object_by_id(&state.document, Object_Id(id))
+}
+
+engine_set_rect_geometry :: proc(id: i32, x, y, width, height: f32) -> bool {
+	return document_set_rect_geometry_by_id(&state.document, Object_Id(id), x, y, width, height)
 }
 
 engine_gpu_clear_frame :: proc() -> bool {

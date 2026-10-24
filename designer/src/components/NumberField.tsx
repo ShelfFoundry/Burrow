@@ -8,15 +8,22 @@ type NumberFieldProps = {
 
 export function NumberField(props: NumberFieldProps) {
   const [text, setText] = createSignal(formatNumber(props.value));
+  let inputRef: HTMLInputElement | undefined;
 
+  // Don't overwrite what the user is typing; the engine may clamp the value
+  // mid-edit (e.g. min rect size). Resync on blur instead.
   createEffect(() => {
-    setText(formatNumber(props.value));
+    const next = formatNumber(props.value);
+    if (document.activeElement !== inputRef) {
+      setText(next);
+    }
   });
 
   return (
     <label class="number-field">
       <span>{props.label}</span>
       <input
+        ref={inputRef}
         type="text"
         inputMode="decimal"
         value={text()}
@@ -29,6 +36,9 @@ export function NumberField(props: NumberFieldProps) {
           if (nextText.trim() !== "" && Number.isFinite(parsed)) {
             props.onValueChange?.(parsed);
           }
+        }}
+        onBlur={() => {
+          setText(formatNumber(props.value));
         }}
       />
     </label>

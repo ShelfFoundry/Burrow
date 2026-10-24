@@ -31,8 +31,29 @@ button {
   cursor: pointer;
 }
 
-button:hover {
+button:hover:not(:disabled) {
   background: #3c4043;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: #4c8bf5;
+  border-color: #4c8bf5;
+  color: #0b1a33;
+  font-weight: 600;
+}
+
+button.primary:hover:not(:disabled) {
+  background: #6a9ef7;
+}
+
+button.small {
+  padding: 2px 8px;
+  font-size: 12px;
 }
 
 .app-shell {
@@ -73,7 +94,7 @@ button:hover {
 .main-layout {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, 1fr) 480px;
 }
 
 .viewport-panel {
@@ -154,17 +175,21 @@ button:hover {
   margin-bottom: 16px;
 }
 
-.number-field {
+.number-field,
+.field {
   display: grid;
   gap: 4px;
 }
 
-.number-field span {
+.number-field span,
+.field > span {
   color: #9aa0a6;
   font-size: 12px;
 }
 
-.number-field input {
+.number-field input,
+.field input,
+.field select {
   width: 100%;
   font: inherit;
   color: #f1f3f4;
@@ -174,7 +199,17 @@ button:hover {
   padding: 6px 8px;
 }
 
-.number-field input:focus {
+.field input.mono {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+.field input::placeholder {
+  color: #6f7378;
+}
+
+.number-field input:focus,
+.field input:focus,
+.field select:focus {
   outline: 2px solid #4c8bf5;
   outline-offset: 1px;
 }
@@ -194,4 +229,150 @@ button:hover {
   margin: 0;
   font-size: 13px;
   color: #f1f3f4;
+}
+
+.field-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #9aa0a6;
+}
+
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  border: 1px solid #5f6368;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.segmented button {
+  border: 0;
+  border-radius: 0;
+  background: #303134;
+  color: #9aa0a6;
+}
+
+.segmented button + button {
+  border-left: 1px solid #5f6368;
+}
+
+.segmented button.active {
+  background: #3c4043;
+  color: #f1f3f4;
+}
+
+.palette-swatches {
+  display: flex;
+  gap: 6px;
+  margin-top: -4px;
+}
+
+.palette-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid #5f6368;
+}
+
+/* Live preview */
+
+.live-preview {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #3c4043;
+}
+
+.live-preview-frame {
+  /* Keep in sync with PREVIEW_MAX_HEIGHT in LivePreview.tsx */
+  box-sizing: content-box;
+  height: 176px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #171717;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.live-preview-screen {
+  max-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  border: 1px dashed #5f6368;
+  border-radius: 4px;
+  background: #2b2c2f;
+}
+
+.live-preview-screen p {
+  margin: 0;
+  font-size: 12px;
+  color: #9aa0a6;
+  text-align: center;
+}
+
+.live-preview-caption {
+  margin: 0;
+  font-size: 12px;
+  color: #9aa0a6;
+  text-align: center;
+}
+
+/* Device status */
+
+.device-status {
+  --status-color: #9aa0a6;
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #3c4043;
+  border-radius: 6px;
+  background: #292a2d;
+}
+
+.device-status[data-status="unchecked"] { --status-color: #f9ab00; }
+.device-status[data-status="checking"] { --status-color: #4c8bf5; }
+.device-status[data-status="online"] { --status-color: #34a853; }
+.device-status[data-status="offline"] { --status-color: #ea4335; }
+
+.device-status-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.device-status-header strong {
+  flex: 1;
+  font-size: 13px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--status-color);
+}
+
+.device-status[data-status="online"] .status-dot {
+  box-shadow: 0 0 0 3px rgb(52 168 83 / 25%);
+}
+
+.device-status-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: 12px;
+}
+
+.device-status-details span {
+  color: #9aa0a6;
+}
+
+.device-status-details strong {
+  font-weight: 500;
+  text-align: right;
 }

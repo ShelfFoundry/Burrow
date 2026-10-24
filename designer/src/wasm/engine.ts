@@ -34,6 +34,48 @@ export type DesignerPointerDebugState = {
     inside: boolean;
 };
 
+// NOTE: must match the order of Object_Kind in engine/document.odin
+const OBJECT_KIND_RECT = 0;
+const OBJECT_KIND_LINE = 1;
+
+export type RectEditableProperty = "x" | "y" | "width" | "height";
+
+export type SelectedObjectSnapshot =
+    | { kind: "none" }
+    | { kind: "multiple"; count: number }
+    | {
+        kind: "rect";
+        id: number;
+        name: string;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    }
+    | {
+        kind: "line";
+        id: number;
+        name: string;
+        x1: number;
+        y1: number;
+        x2: number;
+        y2: number;
+    };
+
+export function selectedObjectSnapshotsEqual(
+    a: SelectedObjectSnapshot,
+    b: SelectedObjectSnapshot,
+): boolean {
+    if (a.kind !== b.kind) {
+        return false;
+    }
+
+    const aFields = a as Record<string, unknown>;
+    const bFields = b as Record<string, unknown>;
+
+    return Object.keys(aFields).every((key) => aFields[key] === bFields[key]);
+}
+
 export type Engine = {
     wasm: DesignerWasm;
 
@@ -91,6 +133,14 @@ export type Engine = {
     selectionIdAt(index: number): boolean;
     selectionContains(id: number): boolean;
     getSelectionIds(): number[];
+    getSelectedObjectSnapshot(): SelectedObjectSnapshot;
+    setRectGeometry: (
+        id: number,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+    ) => boolean;
 
     clearFrame: () => boolean;
     renderDocument: () => boolean;
@@ -268,6 +318,58 @@ export async function createEngine(): Promise<Engine> {
 
     function clearSelection() {
         return wasm.exports.designer_clear_selection();
+    }
+
+    function getSelectedObjectSnapshot(): SelectedObjectSnapshot {
+        const ids = getSelectionIds();
+
+        if (ids.length === 0) {
+            return { kind: "none" };
+        }
+
+        if (ids.length > 1) {
+            return { kind: "multiple", count: ids.length };
+        }
+
+        const id = ids[0];
+        const kind = wasm.exports.designer_object_kind(id);
+        const nameId = wasm.exports.designer_object_name_id(id);
+
+        if (kind === OBJECT_KIND_RECT) {
+            return {
+                kind: "rect",
+                id,
+                name: `Rect ${nameId}`,
+                x: wasm.exports.designer_object_rect_x(id),
+                y: wasm.exports.designer_object_rect_y(id),
+                width: wasm.exports.designer_object_rect_width(id),
+                height: wasm.exports.designer_object_rect_height(id),
+            };
+        }
+
+        if (kind === OBJECT_KIND_LINE) {
+            return {
+                kind: "line",
+                id,
+                name: `Line ${nameId}`,
+                x1: wasm.exports.designer_object_line_x1(id),
+                y1: wasm.exports.designer_object_line_y1(id),
+                x2: wasm.exports.designer_object_line_x2(id),
+                y2: wasm.exports.designer_object_line_y2(id),
+            };
+        }
+
+        return { kind: "none" };
+    }
+
+    function setRectGeometry(
+        id: number,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+    ): boolean {
+        return wasm.exports.designer_set_rect_geometry(id, x, y, width, height) !== 0;
     }
 
     function getPointerDebugState(): DesignerPointerDebugState {
@@ -456,6 +558,8 @@ export async function createEngine(): Promise<Engine> {
         selectionIdAt,
         selectionCount,
         getSelectionIds,
+        getSelectedObjectSnapshot,
+        setRectGeometry,
         debugInteractionHit,
     };
 }

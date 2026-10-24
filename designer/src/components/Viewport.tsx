@@ -1,9 +1,26 @@
 import { onCleanup, onMount } from "solid-js";
-import { createEngine, waitForDesignerGpuReady, resizeCanvasToDisplaySize, type Engine, type ViewportPointerEventKind } from "../wasm/engine";
+import {
+  createEngine,
+  waitForDesignerGpuReady,
+  resizeCanvasToDisplaySize,
+  type Engine,
+  type RectEditableProperty,
+  type SelectedObjectSnapshot,
+  type ViewportPointerEventKind,
+} from "../wasm/engine";
 import { createOdinRenderLoop, type OdinRenderLoop } from "../wasm/loop";
+
+export type ViewportController = {
+  setSelectionRectProperty: (
+    property: RectEditableProperty,
+    value: number,
+  ) => boolean;
+};
 
 type ViewportProps = {
   onStatusChange: (message: string) => void;
+  onSelectedObjectChange?: (snapshot: SelectedObjectSnapshot) => void;
+  onControllerReady?: (controller: ViewportController) => void;
   onDocumentRevisionChange?: (revision: number) => void;
 };
 
@@ -63,6 +80,32 @@ export function Viewport(props: ViewportProps) {
     });
 
     odinLoop.start();
+
+    props.onControllerReady?.({
+      setSelectionRectProperty,
+    });
+  }
+
+  function publishSelectedObject() {
+    if (!engine) return;
+    props.onSelectedObjectChange?.(engine.getSelectedObjectSnapshot());
+  }
+
+  function setSelectionRectProperty(property: RectEditableProperty, value: number): boolean {
+    if (!engine) return false;
+
+    const selected = engine.getSelectedObjectSnapshot();
+    if (selected.kind !== "rect") return false;
+
+    const next = { ...selected, [property]: value };
+    const ok = engine.setRectGeometry(selected.id, next.x, next.y, next.width, next.height);
+
+    if (ok) {
+      odinLoop?.requestRender();
+      publishSelectedObject();
+    }
+
+    return ok;
   }
 
   function dumpOdinDebugInfo(engine: Engine, canvas: HTMLCanvasElement) {
@@ -221,6 +264,7 @@ export function Viewport(props: ViewportProps) {
           }
 
           odinLoop?.requestRender();
+          publishSelectedObject();
         }}
         onPointerMove={(event) => {
           const canvas = canvasRef;
@@ -235,6 +279,7 @@ export function Viewport(props: ViewportProps) {
             engine.pointerModifiers(event),
           );
           odinLoop?.requestRender();
+          publishSelectedObject();
         }}
         onPointerUp={(event) => {
           const canvas = canvasRef;
@@ -251,6 +296,7 @@ export function Viewport(props: ViewportProps) {
           );
 
           odinLoop?.requestRender();
+          publishSelectedObject();
 
           if (canvas.hasPointerCapture(event.pointerId)) {
             canvas.releasePointerCapture(event.pointerId);
@@ -260,6 +306,7 @@ export function Viewport(props: ViewportProps) {
           const canvas = canvasRef;
           if (!canvas) return;
           engine?.pointerCancel();
+          publishSelectedObject();
           if (canvas.hasPointerCapture(event.pointerId)) {
             canvas.releasePointerCapture(event.pointerId);
           }
