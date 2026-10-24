@@ -104,18 +104,22 @@ export type Engine = {
 
     getObjectCount: () => number;
 
+    // interact = false only updates the engine's pointer state, skipping
+    // selection/move/resize, e.g. while a creation tool is active.
     pointerDown: (
         x: number,
         y: number,
         button: number,
         buttons: number,
         modifiers: number,
+        interact?: boolean,
     ) => void;
     pointerMove: (
         x: number,
         y: number,
         buttons: number,
         modifiers: number,
+        interact?: boolean,
     ) => void;
     pointerUp: (
         x: number,
@@ -123,10 +127,12 @@ export type Engine = {
         button: number,
         buttons: number,
         modifiers: number,
+        interact?: boolean,
     ) => void;
     pointerCancel: () => void;
     pointerLeave: () => void;
     pointerModifiers: (event: PointerEvent) => number;
+    getPointerPagePosition: () => { x: number; y: number };
 
     clearSelection(): void;
     selectionCount(): number;
@@ -247,9 +253,10 @@ export async function createEngine(): Promise<Engine> {
         button: number,
         buttons: number,
         modifiers: number,
+        interact = true,
     ): void {
         wasm.exports.designer_pointer_down(x, y, button, buttons, modifiers);
-        wasm.exports.designer_pointer_down_interaction();
+        if (interact) wasm.exports.designer_pointer_down_interaction();
     }
 
     function pointerMove(
@@ -257,9 +264,10 @@ export async function createEngine(): Promise<Engine> {
         y: number,
         buttons: number,
         modifiers: number,
+        interact = true,
     ): void {
         wasm.exports.designer_pointer_move(x, y, buttons, modifiers);
-        wasm.exports.designer_pointer_move_interaction()
+        if (interact) wasm.exports.designer_pointer_move_interaction();
     }
 
     function pointerUp(
@@ -268,9 +276,10 @@ export async function createEngine(): Promise<Engine> {
         button: number,
         buttons: number,
         modifiers: number,
+        interact = true,
     ): void {
         wasm.exports.designer_pointer_up(x, y, button, buttons, modifiers);
-        wasm.exports.designer_pointer_up_interaction()
+        if (interact) wasm.exports.designer_pointer_up_interaction();
     }
 
     function pointerCancel(): void {
@@ -290,6 +299,13 @@ export async function createEngine(): Promise<Engine> {
         if (event.metaKey) modifiers |= 8;
 
         return modifiers;
+    }
+
+    function getPointerPagePosition() {
+        return {
+            x: wasm.exports.designer_pointer_page_x(),
+            y: wasm.exports.designer_pointer_page_y(),
+        };
     }
 
     function selectionCount(): number {
@@ -536,6 +552,7 @@ export async function createEngine(): Promise<Engine> {
         pointerCancel,
         pointerLeave,
         pointerModifiers,
+        getPointerPagePosition,
         getPointerDebugState,
         isGpuInitializeid,
         clearFrame,

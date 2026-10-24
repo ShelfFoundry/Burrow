@@ -18,7 +18,8 @@ export default function App() {
   const [viewportController, setViewportController] = createSignal<ViewportController | undefined>();
   const [_documentRevision, setDocumentRevision] = createSignal(0);
   const [zoom, setZoom] = createSignal(1);
-  // MOCK: the engine has no tool modes yet, so this is UI state only.
+  // The engine has no tool modes yet. Square and Line create objects through the
+  // add exports (see Viewport); the other tools are UI state only.
   const [activeTool, setActiveTool] = createSignal<Tool>("select");
   const [previewVisible, setPreviewVisible] = createSignal(true);
 
@@ -35,9 +36,14 @@ export default function App() {
       setStatus(`Group ${ids.length} ${ids.length === 1 ? "layer" : "layers"} needs engine support`),
   };
 
-  // Ctrl/Cmd+G groups the selection, like Figma.
+  // Ctrl/Cmd+G groups the selection, like Figma. Escape leaves a creation tool.
   onMount(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && activeTool() !== "select" && !isEditingText(event.target)) {
+        setActiveTool("select");
+        return;
+      }
+
       const isGroup =
         (event.ctrlKey || event.metaKey) &&
         !event.shiftKey &&
@@ -74,6 +80,8 @@ export default function App() {
             onControllerReady={setViewportController}
             onDocumentRevisionChange={setDocumentRevision}
             onZoomChange={setZoom}
+            activeTool={activeTool()}
+            onObjectCreated={() => setActiveTool("select")}
           />
 
           <Inspector
