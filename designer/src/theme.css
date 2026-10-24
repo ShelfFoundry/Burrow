@@ -1,0 +1,185 @@
+/* Gruvbox palette. Light is the default; dark applies with <html theme="dark">. */
+
+:root {
+    /* Greys */
+    --grey-50-hsl: 72 19% 95%;
+    --grey-50: hsl(var(--grey-50-hsl) / 1);
+
+    --grey-100-hsl: 75 19% 92%;
+    --grey-100: hsl(var(--grey-100-hsl) / 1);
+
+    --grey-200-hsl: 71 19% 83%;
+    --grey-200: hsl(var(--grey-200-hsl) / 1);
+
+    --grey-300-hsl: 67 18% 72%;
+    --grey-300: hsl(var(--grey-300-hsl) / 1);
+
+    --grey-400-hsl: 67 18% 61%;
+    --grey-400: hsl(var(--grey-400-hsl) / 1);
+
+    --grey-500-hsl: 64 18% 53%;
+    --grey-500: hsl(var(--grey-500-hsl) / 1);
+
+    --grey-600-hsl: 60 16% 46%;
+    --grey-600: hsl(var(--grey-600-hsl) / 1);
+
+    --grey-700-hsl: 56 16% 40%;
+    --grey-700: hsl(var(--grey-700-hsl) / 1);
+
+    --grey-800-hsl: 55 15% 34%;
+    --grey-800: hsl(var(--grey-800-hsl) / 1);
+
+    --grey-900-hsl: 54 14% 28%;
+    --grey-900: hsl(var(--grey-900-hsl) / 1);
+
+    --grey-950-hsl: 55 16% 15%;
+    --grey-950: hsl(var(--grey-950-hsl) / 1);
+
+    /* Primary colors */
+    --primary-hsl: 24 88% 45%;
+    --primary: hsl(var(--primary-hsl) / 1);
+
+    --primary-alt-hsl: 19 97% 35%;
+    --primary-alt: hsl(var(--primary-alt-hsl) / 1);
+
+    /* Accents */
+    --red-hsl: 2 75% 46%;
+    --red: hsl(var(--red-hsl) / 1);
+
+    --yellow-hsl: 40 73% 49%;
+    --yellow: hsl(var(--yellow-hsl) / 1);
+
+    --green-hsl: 60 71% 35%;
+    --green: hsl(var(--green-hsl) / 1);
+
+    --blue-hsl: 183 33% 40%;
+    --blue: hsl(var(--blue-hsl) / 1);
+
+    --purple-hsl: 333 34% 54%;
+    --purple: hsl(var(--purple-hsl) / 1);
+
+    --aqua-hsl: 122 21% 51%;
+    --aqua: hsl(var(--aqua-hsl) / 1);
+
+    /* Alt Accents */
+    --red-alt-hsl: 358 100% 31%;
+    --red-alt: hsl(var(--red-alt-hsl) / 1);
+
+    --yellow-alt-hsl: 37 80% 39%;
+    --yellow-alt: hsl(var(--yellow-alt-hsl) / 1);
+
+    --green-alt-hsl: 57 79% 26%;
+    --green-alt: hsl(var(--green-alt-hsl) / 1);
+
+    --blue-alt-hsl: 190 89% 25%;
+    --blue-alt: hsl(var(--blue-alt-hsl) / 1);
+
+    --purple-alt-hsl: 323 39% 40%;
+    --purple-alt: hsl(var(--purple-alt-hsl) / 1);
+
+    --aqua-alt-hsl: 143 30% 37%;
+    --aqua-alt: hsl(var(--aqua-alt-hsl) / 1);
+
+    /* Other tokens */
+    --text-hsl: 56 16% 40%;
+    --text: hsl(var(--text-hsl) / 1);
+
+    --border-hsl: 67 11% 85%;
+    --border: hsl(var(--border-hsl) / 1);
+
+    --radius-md: 5px;
+
+    /* Easings */
+    --ease-in-out: cubic-bezier(0.4, 0.0, 0.2, 1);
+    --ease-in: cubic-bezier(0.0, 0.0, 0.2, 1);
+    --ease-out: cubic-bezier(0.4, 0.0, 1, 1);
+    --ease-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+html[theme="dark"] {
+    /* Greys */
+    --grey-50-hsl: 60 9% 98%;
+    --grey-50: hsl(var(--grey-50-hsl) / 1);
+
+    --grey-100-hsl: 60 5% 96%;
+    --grey-100: hsl(var(--grey-100-hsl) / 1);
+
+    --grey-200-hsl: 20 6% 90%;
+    --grey-200: hsl(var(--grey-200-hsl) / 1);
+
+    --grey-300-hsl: 24 6% 83%;
+    --grey-300: hsl(var(--grey-300-hsl) / 1);
+
+    --grey-400-hsl: 24 5% 64%;
+    --grey-400: hsl(var(--grey-400-hsl) / 1);
+
+    --grey-500-hsl: 25 5% 45%;
+    --grey-500: hsl(var(--grey-500-hsl) / 1);
+
+    --grey-600-hsl: 33 6% 32%;
+    --grey-600: hsl(var(--grey-600-hsl) / 1);
+
+    --grey-700-hsl: 30 6% 25%;
+    --grey-700: hsl(var(--grey-700-hsl) / 1);
+
+    --grey-800-hsl: 12 7% 15%;
+    --grey-800: hsl(var(--grey-800-hsl) / 1);
+
+    --grey-900-hsl: 24 10% 10%;
+    --grey-900: hsl(var(--grey-900-hsl) / 1);
+
+    --grey-950-hsl: 20 14% 4%;
+    --grey-950: hsl(var(--grey-950-hsl) / 1);
+
+    /* Primary colors */
+    --primary-hsl: 24 88% 45%;
+    --primary: hsl(var(--primary-hsl) / 1);
+
+    --primary-alt-hsl: 19 97% 35%;
+    --primary-alt: hsl(var(--primary-alt-hsl) / 1);
+
+    /* Accents */
+    --red-hsl: 6 96% 59%;
+    --red: hsl(var(--red-hsl) / 1);
+
+    --yellow-hsl: 42 95% 58%;
+    --yellow: hsl(var(--yellow-hsl) / 1);
+
+    --green-hsl: 61 66% 44%;
+    --green: hsl(var(--green-hsl) / 1);
+
+    --blue-hsl: 157 16% 58%;
+    --blue: hsl(var(--blue-hsl) / 1);
+
+    --purple-hsl: 344 47% 68%;
+    --purple: hsl(var(--purple-hsl) / 1);
+
+    --aqua-hsl: 104 35% 62%;
+    --aqua: hsl(var(--aqua-hsl) / 1);
+
+    /* Alt Accents */
+    --red-alt-hsl: 2 75% 46%;
+    --red-alt: hsl(var(--red-alt-hsl) / 1);
+
+    --yellow-alt-hsl: 40 73% 49%;
+    --yellow-alt: hsl(var(--yellow-alt-hsl) / 1);
+
+    --green-alt-hsl: 60 71% 35%;
+    --green-alt: hsl(var(--green-alt-hsl) / 1);
+
+    --blue-alt-hsl: 183 33% 40%;
+    --blue-alt: hsl(var(--blue-alt-hsl) / 1);
+
+    --purple-alt-hsl: 333 34% 54%;
+    --purple-alt: hsl(var(--purple-alt-hsl) / 1);
+
+    --aqua-alt-hsl: 122 21% 51%;
+    --aqua-alt: hsl(var(--aqua-alt-hsl) / 1);
+
+    /* Other tokens */
+    --text-hsl: 24 6% 83%;
+    --text: hsl(var(--text-hsl) / 1);
+
+    --border-hsl: 30 6% 25%;
+    --border: hsl(var(--border-hsl) / 1);
+}

@@ -130,7 +130,7 @@ export type Engine = {
 
     clearSelection(): void;
     selectionCount(): number;
-    selectionIdAt(index: number): boolean;
+    selectionIdAt(index: number): number;
     selectionContains(id: number): boolean;
     getSelectionIds(): number[];
     getSelectedObjectSnapshot(): SelectedObjectSnapshot;
@@ -296,8 +296,8 @@ export async function createEngine(): Promise<Engine> {
         return wasm.exports.designer_selection_count();
     }
 
-    function selectionIdAt(index: number): boolean {
-        return wasm.exports.designer_selection_id_at(index) !== 0;
+    function selectionIdAt(index: number): number {
+        return wasm.exports.designer_selection_id_at(index);
     }
 
     function selectionContains(id: number): boolean {

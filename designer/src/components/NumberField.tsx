@@ -1,8 +1,12 @@
-import { createEffect, createSignal } from "solid-js";
+import { createEffect, createSignal, type JSX } from "solid-js";
+import { fieldBox, fieldInput, InputPrefix } from "./ui";
 
 type NumberFieldProps = {
+  // Short glyph shown inside the input, e.g. "X".
+  prefix: JSX.Element;
   label: string;
   value: number;
+  readOnly?: boolean;
   onValueChange?: (value: number) => void;
 };
 
@@ -20,12 +24,15 @@ export function NumberField(props: NumberFieldProps) {
   });
 
   return (
-    <label class="number-field">
-      <span>{props.label}</span>
+    <label class={fieldBox} title={props.label}>
+      <InputPrefix>{props.prefix}</InputPrefix>
       <input
         ref={inputRef}
+        class={fieldInput}
         type="text"
         inputMode="decimal"
+        aria-label={props.label}
+        readOnly={props.readOnly}
         value={text()}
         onInput={(event) => {
           const nextText = event.currentTarget.value;

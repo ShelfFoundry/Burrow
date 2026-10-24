@@ -1,378 +1,107 @@
-* {
-  box-sizing: border-box;
+@import "tailwindcss";
+@import "@fontsource-variable/noto-sans";
+@import "./theme.css";
+
+@custom-variant dark (&:where([theme="dark"], [theme="dark"] *));
+/* Desktop editor: plain :hover, without Tailwind's (hover: hover) media guard.
+   Disabled controls never show a hover state. */
+@custom-variant hover (&:hover:not(:disabled, [aria-disabled="true"]));
+
+/* UI roles built from the palette in theme.css. */
+:root {
+  --surface: var(--grey-50);
+  --canvas: var(--grey-200);
+  --field: var(--grey-100);
+  --hover: var(--grey-100);
+  --selected: var(--grey-200);
+  --fg-strong: var(--grey-950);
+  --fg-muted: var(--grey-500);
 }
 
-html,
-body,
-#root {
-  width: 100%;
-  height: 100%;
-  margin: 0;
+html[theme="dark"] {
+  color-scheme: dark;
+  --surface: var(--grey-900);
+  --canvas: var(--grey-800);
+  --field: var(--grey-800);
+  --hover: var(--grey-800);
+  --selected: var(--grey-700);
+  --fg-strong: var(--grey-100);
+  --fg-muted: var(--grey-500);
 }
 
-body {
-  font-family:
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-  background: #202124;
-  color: #f1f3f4;
+@theme inline {
+  /* Only palette colors, no Tailwind defaults. */
+  --color-*: initial;
+  --color-white: #fff;
+  --color-black: #000;
+
+  --color-grey-50: var(--grey-50);
+  --color-grey-100: var(--grey-100);
+  --color-grey-200: var(--grey-200);
+  --color-grey-300: var(--grey-300);
+  --color-grey-400: var(--grey-400);
+  --color-grey-500: var(--grey-500);
+  --color-grey-600: var(--grey-600);
+  --color-grey-700: var(--grey-700);
+  --color-grey-800: var(--grey-800);
+  --color-grey-900: var(--grey-900);
+  --color-grey-950: var(--grey-950);
+
+  --color-primary: var(--primary);
+  --color-primary-alt: var(--primary-alt);
+
+  --color-red: var(--red);
+  --color-yellow: var(--yellow);
+  --color-green: var(--green);
+  --color-blue: var(--blue);
+  --color-purple: var(--purple);
+  --color-aqua: var(--aqua);
+
+  --color-red-alt: var(--red-alt);
+  --color-yellow-alt: var(--yellow-alt);
+  --color-green-alt: var(--green-alt);
+  --color-blue-alt: var(--blue-alt);
+  --color-purple-alt: var(--purple-alt);
+  --color-aqua-alt: var(--aqua-alt);
+
+  --color-fg: var(--text);
+  --color-fg-strong: var(--fg-strong);
+  --color-fg-muted: var(--fg-muted);
+  --color-border: var(--border);
+  --color-surface: var(--surface);
+  --color-canvas: var(--canvas);
+  --color-field: var(--field);
+  --color-hover: var(--hover);
+  --color-selected: var(--selected);
+
+  /* --radius-md and --ease-* share Tailwind's names, so theme.css (unlayered)
+     already overrides rounded-md and ease-* utilities. */
+
+  --font-sans: "Noto Sans Variable", ui-sans-serif, system-ui, sans-serif;
 }
 
-button {
-  font: inherit;
-  border: 1px solid #5f6368;
-  background: #303134;
-  color: #f1f3f4;
-  border-radius: 6px;
-  padding: 6px 12px;
-  cursor: pointer;
-}
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
 
-button:hover:not(:disabled) {
-  background: #3c4043;
-}
+  body {
+    @apply bg-surface font-sans text-[13px] text-fg antialiased;
+  }
 
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+  button:not(:disabled) {
+    cursor: pointer;
+  }
 
-button.primary {
-  background: #4c8bf5;
-  border-color: #4c8bf5;
-  color: #0b1a33;
-  font-weight: 600;
-}
+  /* Set on <html> while a layer is being dragged. */
+  html.is-dragging,
+  html.is-dragging * {
+    cursor: grabbing !important;
+  }
 
-button.primary:hover:not(:disabled) {
-  background: #6a9ef7;
-}
-
-button.small {
-  padding: 2px 8px;
-  font-size: 12px;
-}
-
-.app-shell {
-  height: 100%;
-  display: grid;
-  grid-template-rows: 52px 1fr 28px;
-}
-
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-  border-bottom: 1px solid #3c4043;
-  background: #171717;
-}
-
-.toolbar-title {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.app-name {
-  font-weight: 700;
-}
-
-.app-subtitle {
-  font-size: 12px;
-  color: #9aa0a6;
-}
-
-.toolbar-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.main-layout {
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 480px;
-}
-
-.viewport-panel {
-  min-width: 0;
-  min-height: 0;
-  background: #2b2c2f;
-}
-
-.viewport-canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-  background: transparent;
-  touch-action: none;
-}
-
-.inspector-panel {
-  border-left: 1px solid #3c4043;
-  background: #202124;
-  padding: 16px;
-  overflow: auto;
-}
-
-.inspector-panel h2 {
-  margin: 0 0 16px;
-  font-size: 16px;
-}
-
-.muted {
-  color: #9aa0a6;
-}
-
-.property-list {
-  display: grid;
-  gap: 8px;
-}
-
-.property-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 8px 0;
-  border-bottom: 1px solid #3c4043;
-}
-
-.property-row span {
-  color: #9aa0a6;
-}
-
-.status-bar {
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  border-top: 1px solid #3c4043;
-  background: #171717;
-  color: #9aa0a6;
-  font-size: 12px;
-}
-
-.panel-divider {
-  border: 0;
-  border-top: 1px solid #3c4043;
-  margin: 16px 0;
-}
-
-.wasm-status {
-  font-size: 12px;
-  color: #9aa0a6;
-  line-height: 1.4;
-}
-
-.document-summary h3 {
-  margin: 0 0 8px;
-  font-size: 14px;
-}
-
-.document-summary {
-  margin-bottom: 16px;
-}
-
-.number-field,
-.field {
-  display: grid;
-  gap: 4px;
-}
-
-.number-field span,
-.field > span {
-  color: #9aa0a6;
-  font-size: 12px;
-}
-
-.number-field input,
-.field input,
-.field select {
-  width: 100%;
-  font: inherit;
-  color: #f1f3f4;
-  background: #303134;
-  border: 1px solid #5f6368;
-  border-radius: 6px;
-  padding: 6px 8px;
-}
-
-.field input.mono {
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-}
-
-.field input::placeholder {
-  color: #6f7378;
-}
-
-.number-field input:focus,
-.field input:focus,
-.field select:focus {
-  outline: 2px solid #4c8bf5;
-  outline-offset: 1px;
-}
-
-.inspector-form {
-  display: grid;
-  gap: 12px;
-}
-
-.inspector-section {
-  display: grid;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.inspector-section-title {
-  margin: 0;
-  font-size: 13px;
-  color: #f1f3f4;
-}
-
-.field-hint {
-  margin: 0;
-  font-size: 12px;
-  color: #9aa0a6;
-}
-
-.segmented {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  border: 1px solid #5f6368;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.segmented button {
-  border: 0;
-  border-radius: 0;
-  background: #303134;
-  color: #9aa0a6;
-}
-
-.segmented button + button {
-  border-left: 1px solid #5f6368;
-}
-
-.segmented button.active {
-  background: #3c4043;
-  color: #f1f3f4;
-}
-
-.palette-swatches {
-  display: flex;
-  gap: 6px;
-  margin-top: -4px;
-}
-
-.palette-swatch {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  border: 1px solid #5f6368;
-}
-
-/* Live preview */
-
-.live-preview {
-  display: grid;
-  gap: 8px;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid #3c4043;
-}
-
-.live-preview-frame {
-  /* Keep in sync with PREVIEW_MAX_HEIGHT in LivePreview.tsx */
-  box-sizing: content-box;
-  height: 176px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #171717;
-  border-radius: 8px;
-  padding: 12px;
-}
-
-.live-preview-screen {
-  max-height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-  border: 1px dashed #5f6368;
-  border-radius: 4px;
-  background: #2b2c2f;
-}
-
-.live-preview-screen p {
-  margin: 0;
-  font-size: 12px;
-  color: #9aa0a6;
-  text-align: center;
-}
-
-.live-preview-caption {
-  margin: 0;
-  font-size: 12px;
-  color: #9aa0a6;
-  text-align: center;
-}
-
-/* Device status */
-
-.device-status {
-  --status-color: #9aa0a6;
-  display: grid;
-  gap: 8px;
-  padding: 10px 12px;
-  border: 1px solid #3c4043;
-  border-radius: 6px;
-  background: #292a2d;
-}
-
-.device-status[data-status="unchecked"] { --status-color: #f9ab00; }
-.device-status[data-status="checking"] { --status-color: #4c8bf5; }
-.device-status[data-status="online"] { --status-color: #34a853; }
-.device-status[data-status="offline"] { --status-color: #ea4335; }
-
-.device-status-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.device-status-header strong {
-  flex: 1;
-  font-size: 13px;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--status-color);
-}
-
-.device-status[data-status="online"] .status-dot {
-  box-shadow: 0 0 0 3px rgb(52 168 83 / 25%);
-}
-
-.device-status-details {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px 12px;
-  font-size: 12px;
-}
-
-.device-status-details span {
-  color: #9aa0a6;
-}
-
-.device-status-details strong {
-  font-weight: 500;
-  text-align: right;
+  ::placeholder {
+    color: var(--fg-muted);
+  }
 }

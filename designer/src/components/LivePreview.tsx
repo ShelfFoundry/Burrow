@@ -1,7 +1,6 @@
 import { findLabelSize, findPalette, type TemplateSettings } from "../template/settings";
 
-// Keep in sync with .live-preview-frame height in index.css
-const PREVIEW_MAX_HEIGHT = 176;
+const PREVIEW_MAX_HEIGHT = 180;
 
 type LivePreviewProps = {
   settings: TemplateSettings;
@@ -18,23 +17,26 @@ export function LivePreview(props: LivePreviewProps) {
   };
 
   return (
-    <section class="live-preview">
-      <h3 class="inspector-section-title">Live preview</h3>
+    <section class="flex flex-col gap-2 border-t border-border px-5 py-4">
+      <h2 class="text-[15px] text-fg-strong">Live preview</h2>
 
-      <div class="live-preview-frame">
+      <div
+        class="flex items-center justify-center rounded-md bg-canvas p-3"
+        style={{ height: `${PREVIEW_MAX_HEIGHT + 24}px` }}
+      >
         <div
-          class="live-preview-screen"
+          class="flex max-h-full items-center justify-center rounded-sm border border-dashed border-grey-600 p-3"
           style={{
             "aspect-ratio": `${size().width} / ${size().height}`,
             // Fit inside the frame: full width for wide labels, capped height for tall ones.
             width: `min(100%, ${(PREVIEW_MAX_HEIGHT * size().width) / size().height}px)`,
           }}
         >
-          <p>Select a product to enable live previews</p>
+          <p class="text-center text-[11px] text-fg-muted">Select a product to enable live previews</p>
         </div>
       </div>
 
-      <p class="live-preview-caption">
+      <p class="text-center text-[11px] text-fg-muted">
         {size().width} × {size().height} · {findPalette(props.settings.palette).label}
       </p>
     </section>

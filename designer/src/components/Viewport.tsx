@@ -15,6 +15,7 @@ export type ViewportController = {
     property: RectEditableProperty,
     value: number,
   ) => boolean;
+  getSelectionIds: () => number[];
 };
 
 type ViewportProps = {
@@ -22,6 +23,7 @@ type ViewportProps = {
   onSelectedObjectChange?: (snapshot: SelectedObjectSnapshot) => void;
   onControllerReady?: (controller: ViewportController) => void;
   onDocumentRevisionChange?: (revision: number) => void;
+  onZoomChange?: (zoom: number) => void;
 };
 
 export function Viewport(props: ViewportProps) {
@@ -71,6 +73,7 @@ export function Viewport(props: ViewportProps) {
       }
 
       const ok = engine.renderDocument();
+      props.onZoomChange?.(engine.getTransform().zoom);
 
       if (DEBUG) {
         dumpOdinDebugInfo(engine, canvas);
@@ -83,6 +86,7 @@ export function Viewport(props: ViewportProps) {
 
     props.onControllerReady?.({
       setSelectionRectProperty,
+      getSelectionIds: () => engine?.getSelectionIds() ?? [],
     });
   }
 
@@ -237,11 +241,11 @@ export function Viewport(props: ViewportProps) {
   }
 
   return (
-    <section class="viewport-panel">
+    <section class="absolute inset-0 bg-canvas">
       <canvas
         id="designer-canvas"
         ref={canvasRef}
-        class="viewport-canvas"
+        class="block size-full touch-none outline-none"
         tabindex={0}
         onPointerDown={(event) => {
           const canvas = canvasRef;

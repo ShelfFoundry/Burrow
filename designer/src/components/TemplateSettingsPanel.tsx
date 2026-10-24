@@ -7,10 +7,18 @@ import {
   PALETTE_OPTIONS,
   findPalette,
   type DeviceStatus,
+  type Orientation,
+  type SelectOption,
   type TemplateSettings,
 } from "../template/settings";
 import { SelectField } from "./SelectField";
 import { TextField } from "./TextField";
+import { FieldLabel, PanelSection, Segmented, Swatch } from "./ui";
+
+const ORIENTATION_OPTIONS: SelectOption<Orientation>[] = [
+  { value: "landscape", label: "Landscape" },
+  { value: "portrait", label: "Portrait" },
+];
 
 type TemplateSettingsPanelProps = {
   settings: TemplateSettings;
@@ -46,20 +54,8 @@ export function TemplateSettingsPanel(props: TemplateSettingsPanelProps) {
   }
 
   return (
-    <div class="inspector-form">
-      <section class="inspector-section">
-        <h3 class="inspector-section-title">Template</h3>
-
-        <TextField
-          label="Name"
-          value={props.settings.name}
-          onValueChange={(name) => props.setSettings("name", name)}
-        />
-      </section>
-
-      <section class="inspector-section">
-        <h3 class="inspector-section-title">Device</h3>
-
+    <>
+      <PanelSection title="Device">
         <TextField
           label="Device ID"
           placeholder="Label code, e.g. 0A1B2C3D4E5F"
@@ -80,11 +76,9 @@ export function TemplateSettingsPanel(props: TemplateSettingsPanelProps) {
           options={MOCK_PRODUCTS}
           onValueChange={(productId) => props.setSettings("productId", productId)}
         />
-      </section>
+      </PanelSection>
 
-      <section class="inspector-section">
-        <h3 class="inspector-section-title">Display</h3>
-
+      <PanelSection title="Display">
         <SelectField
           label="Device"
           value={props.settings.labelSize}
@@ -92,24 +86,13 @@ export function TemplateSettingsPanel(props: TemplateSettingsPanelProps) {
           onValueChange={(labelSize) => props.setSettings("labelSize", labelSize)}
         />
 
-        <div class="field">
-          <span>Orientation</span>
-          <div class="segmented">
-            <button
-              type="button"
-              classList={{ active: props.settings.orientation === "landscape" }}
-              onClick={() => props.setSettings("orientation", "landscape")}
-            >
-              Landscape
-            </button>
-            <button
-              type="button"
-              classList={{ active: props.settings.orientation === "portrait" }}
-              onClick={() => props.setSettings("orientation", "portrait")}
-            >
-              Portrait
-            </button>
-          </div>
+        <div class="flex flex-col gap-1">
+          <FieldLabel>Orientation</FieldLabel>
+          <Segmented
+            value={props.settings.orientation}
+            options={ORIENTATION_OPTIONS}
+            onValueChange={(orientation) => props.setSettings("orientation", orientation)}
+          />
         </div>
 
         <SelectField
@@ -119,9 +102,9 @@ export function TemplateSettingsPanel(props: TemplateSettingsPanelProps) {
           onValueChange={(palette) => props.setSettings("palette", palette)}
         />
 
-        <div class="palette-swatches">
+        <div class="flex gap-1.5">
           <For each={findPalette(props.settings.palette).colors}>
-            {(color) => <span class="palette-swatch" style={{ background: color }} title={color} />}
+            {(color) => <Swatch color={color} title={color} class="size-4" />}
           </For>
         </div>
 
@@ -131,24 +114,24 @@ export function TemplateSettingsPanel(props: TemplateSettingsPanelProps) {
           options={DITHERING_OPTIONS}
           onValueChange={(dithering) => props.setSettings("dithering", dithering)}
         />
-      </section>
+      </PanelSection>
 
-      <section class="inspector-section">
+      <PanelSection>
         <button
           type="button"
-          class="primary"
+          class="h-8 rounded-md bg-primary text-xs font-medium text-white transition-colors hover:bg-primary-alt disabled:opacity-40"
           disabled={!canPush()}
           onClick={() => props.onStatusChange?.("Send to device not implemented yet")}
         >
           Send to device
         </button>
         {canPush() && (
-          <p class="field-hint">
+          <p class="text-[11px] text-fg-muted">
             Renders this template for the selected product and pushes it via AIMS.
           </p>
         )}
-      </section>
-    </div>
+      </PanelSection>
+    </>
   );
 }
 
@@ -171,38 +154,53 @@ function DeviceStatusCard(props: DeviceStatusCardProps) {
   const canCheck = () => props.status.kind !== "checking";
 
   return (
-    <div class="device-status" data-status={props.status.kind}>
-      <div class="device-status-header">
-        <span class="status-dot" />
-        <strong>{label()}</strong>
+    <div class="flex flex-col gap-2 rounded-md border border-border p-2.5">
+      <div class="flex h-5 items-center gap-2">
+        <span class={`size-2 rounded-full ${STATUS_DOT[props.status.kind]}`} />
+        <strong class="flex-1 text-xs font-medium text-fg-strong">{label()}</strong>
         {props.status.kind !== "no-device" && (
-          <button type="button" class="small" disabled={!canCheck()} onClick={props.onCheck}>
+          <button
+            type="button"
+            class="h-5 rounded bg-field px-2 text-[11px] text-fg transition-colors hover:bg-selected disabled:opacity-40"
+            disabled={!canCheck()}
+            onClick={props.onCheck}
+          >
             {props.status.kind === "unchecked" ? "Check" : "Refresh"}
           </button>
         )}
       </div>
 
       {props.status.kind === "no-device" && (
-        <p class="field-hint">Enter a device ID to check availability.</p>
+        <p class="text-[11px] text-fg-muted">Enter a device ID to check availability.</p>
       )}
 
       {props.status.kind === "online" && (
-        <div class="device-status-details">
-          <span>Battery</span>
-          <strong>{props.status.battery}%</strong>
-          <span>Signal</span>
-          <strong>{props.status.signalDbm} dBm ({signalQuality(props.status.signalDbm)})</strong>
-          <span>Last seen</span>
-          <strong>{props.status.lastSeen}</strong>
-        </div>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+          <dt class="text-fg-muted">Battery</dt>
+          <dd class="text-right text-fg-strong">{props.status.battery}%</dd>
+          <dt class="text-fg-muted">Signal</dt>
+          <dd class="text-right text-fg-strong">
+            {props.status.signalDbm} dBm ({signalQuality(props.status.signalDbm)})
+          </dd>
+          <dt class="text-fg-muted">Last seen</dt>
+          <dd class="text-right text-fg-strong">{props.status.lastSeen}</dd>
+        </dl>
       )}
 
       {props.status.kind === "offline" && (
-        <p class="field-hint">Last seen {props.status.lastSeen}</p>
+        <p class="text-[11px] text-fg-muted">Last seen {props.status.lastSeen}</p>
       )}
     </div>
   );
 }
+
+const STATUS_DOT: Record<DeviceStatus["kind"], string> = {
+  "no-device": "bg-fg-muted",
+  unchecked: "bg-yellow",
+  checking: "bg-blue animate-pulse",
+  online: "bg-green ring-3 ring-green/25",
+  offline: "bg-red",
+};
 
 function signalQuality(dbm: number): string {
   if (dbm >= -65) return "good";
