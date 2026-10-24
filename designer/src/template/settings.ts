@@ -8,21 +8,22 @@ export type SelectOption<T extends string> = {
     label: string;
 };
 
+// Values are the ditherer names the render engine's dither crate accepts.
 export type DitheringAlgorithm =
-    | "none"
-    | "floyd-steinberg"
+    | "floyd"
     | "atkinson"
-    | "jarvis-judice-ninke"
     | "stucki"
-    | "bayer";
+    | "burkes"
+    | "jarvis"
+    | "sierra";
 
 export const DITHERING_OPTIONS: SelectOption<DitheringAlgorithm>[] = [
-    { value: "none", label: "None (nearest color)" },
-    { value: "floyd-steinberg", label: "Floyd–Steinberg" },
+    { value: "floyd", label: "Floyd–Steinberg" },
     { value: "atkinson", label: "Atkinson" },
-    { value: "jarvis-judice-ninke", label: "Jarvis–Judice–Ninke" },
     { value: "stucki", label: "Stucki" },
-    { value: "bayer", label: "Ordered (Bayer 4×4)" },
+    { value: "burkes", label: "Burkes" },
+    { value: "jarvis", label: "Jarvis–Judice–Ninke" },
+    { value: "sierra", label: "Sierra" },
 ];
 
 export type PaletteId = "bw" | "bwr" | "bwy" | "bwry" | "7-color";
@@ -40,10 +41,11 @@ export const PALETTE_OPTIONS: PaletteOption[] = [
         label: "4 color display",
         colors: ["#000000", "#ffffff", "#d0021b", "#f5c400"],
     },
+    // SoluM calls this "7 color", but the panel only has six.
     {
         value: "7-color",
         label: "7 color display",
-        colors: ["#000000", "#ffffff", "#d0021b", "#f5c400", "#2e7d32", "#1e4fd8", "#f28c00"],
+        colors: ["#000000", "#ffffff", "#d0021b", "#f5c400", "#2e7d32", "#1e4fd8"],
     },
 ];
 
@@ -97,7 +99,7 @@ export function createTemplateSettingsStore() {
         labelSize: "9.7",
         orientation: "portrait",
         palette: "7-color",
-        dithering: "atkinson",
+        dithering: "floyd",
         deviceStatus: { kind: "no-device" },
     });
 }

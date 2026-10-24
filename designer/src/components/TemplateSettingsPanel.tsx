@@ -80,7 +80,7 @@ export function TemplateSettingsPanel(props: TemplateSettingsPanelProps) {
 
       <PanelSection title="Display">
         <SelectField
-          label="Device"
+          label="Hardware"
           value={props.settings.labelSize}
           options={LABEL_SIZE_OPTIONS}
           onValueChange={(labelSize) => props.setSettings("labelSize", labelSize)}
