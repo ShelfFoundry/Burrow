@@ -185,6 +185,126 @@ designer_clear_selection :: proc() {
 	engine_clear_selection()
 }
 
+// Returns the Object_Kind ordinal, or -1 if no object has this id.
+@(export)
+designer_object_kind :: proc(id: i32) -> i32 {
+	object := engine_get_object(id)
+
+	if object == nil {
+		return -1
+	}
+
+	return i32(object.kind)
+}
+
+@(export)
+designer_object_name_id :: proc(id: i32) -> i32 {
+	object := engine_get_object(id)
+
+	if object == nil {
+		return 0
+	}
+
+	return object.name_id
+}
+
+@(export)
+designer_object_rect_x :: proc(id: i32) -> f32 {
+	object := engine_get_object(id)
+
+	if object == nil || object.kind != .Rect {
+		return 0
+	}
+
+	return object.rect.x
+}
+
+@(export)
+designer_object_rect_y :: proc(id: i32) -> f32 {
+	object := engine_get_object(id)
+
+	if object == nil || object.kind != .Rect {
+		return 0
+	}
+
+	return object.rect.y
+}
+
+@(export)
+designer_object_rect_width :: proc(id: i32) -> f32 {
+	object := engine_get_object(id)
+
+	if object == nil || object.kind != .Rect {
+		return 0
+	}
+
+	return object.rect.width
+}
+
+@(export)
+designer_object_rect_height :: proc(id: i32) -> f32 {
+	object := engine_get_object(id)
+
+	if object == nil || object.kind != .Rect {
+		return 0
+	}
+
+	return object.rect.height
+}
+
+@(export)
+designer_object_line_x1 :: proc(id: i32) -> f32 {
+	object := engine_get_object(id)
+
+	if object == nil || object.kind != .Line {
+		return 0
+	}
+
+	return object.line.x1
+}
+
+@(export)
+designer_object_line_y1 :: proc(id: i32) -> f32 {
+	object := engine_get_object(id)
+
+	if object == nil || object.kind != .Line {
+		return 0
+	}
+
+	return object.line.y1
+}
+
+@(export)
+designer_object_line_x2 :: proc(id: i32) -> f32 {
+	object := engine_get_object(id)
+
+	if object == nil || object.kind != .Line {
+		return 0
+	}
+
+	return object.line.x2
+}
+
+@(export)
+designer_object_line_y2 :: proc(id: i32) -> f32 {
+	object := engine_get_object(id)
+
+	if object == nil || object.kind != .Line {
+		return 0
+	}
+
+	return object.line.y2
+}
+
+@(export)
+designer_set_rect_geometry :: proc(id: i32, x, y, width, height: f32) -> i32 {
+	if engine_set_rect_geometry(id, x, y, width, height) {
+		return 1
+	}
+
+	return 0
+}
+
 @(export)
 designer_gpu_is_initialized :: proc() -> i32 {
 	if engine_gpu_is_initialized() {
@@ -348,6 +468,25 @@ designer_add_full_rect :: proc(
 		RGBA{r = stroke_r, g = stroke_g, b = stroke_b, a = stroke_a},
 		stroke_width,
 	)
+}
+
+@(export)
+designer_object_id_at :: proc(index: i32) -> i32 {
+	return i32(engine_object_id_at(index))
+}
+
+@(export)
+designer_select_object_by_id :: proc(id: i32, mode: i32) -> i32 {
+	selection_mode := Selection_Mode(mode)
+	if selection_mode < min(Selection_Mode) || selection_mode > max(Selection_Mode) {
+		return 0
+	}
+	return i32(engine_select_object_by_id(Object_Id(id), selection_mode))
+}
+
+@(export)
+designer_document_revision :: proc() -> i32 {
+	return engine_document_revision()
 }
 
 main :: proc() {}

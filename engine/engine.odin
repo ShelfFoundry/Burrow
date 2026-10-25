@@ -22,7 +22,7 @@ engine_init :: proc(width: i32, height: i32) {
 	state.viewport_height = height
 	state.frame_count = 0
 
-	document_init_blank(&state.document, 612.0, 792.0)
+	document_init_blank(&state.document, 672.0, 960.0)
 	engine_recompute_viewport_transform()
 	gpu_init(&state.gpu)
 	engine_clear_interaction()
@@ -52,6 +52,18 @@ engine_viewport_height :: proc() -> i32 {
 
 engine_is_initialized :: proc() -> bool {
 	return state.initialized
+}
+
+engine_document_revision :: proc() -> i32 {
+	return state.document.revision
+}
+
+engine_object_id_at :: proc(index: i32) -> Object_Id {
+	obj := document_get_object_by_index(&state.document, int(index))
+	if obj == nil {
+		return 0
+	}
+	return obj.id
 }
 
 engine_page_width :: proc() -> f32 {
@@ -577,6 +589,20 @@ engine_update_selection_from_current_pointer :: proc() -> i32 {
 	return 0
 }
 
+engine_select_object_by_id :: proc(id: Object_Id, mode: Selection_Mode) -> bool {
+	obj := document_get_object_by_id(&state.document, id)
+	if obj == nil {
+		return false
+	}
+	switch mode {
+	case .Replace:
+		selection_replace(&state.selection, obj.id)
+	case .Toggle:
+		selection_toggle(&state.selection, obj.id)
+	}
+	return true
+}
+
 engine_clear_interaction :: proc() {
 	state.interaction = Interaction_State{}
 }
@@ -587,6 +613,14 @@ engine_clear_selection :: proc() {
 
 engine_has_selection :: proc() -> bool {
 	return state.selection.count > 0
+}
+
+engine_get_object :: proc(id: i32) -> ^Editor_Object {
+	return document_get_object_by_id(&state.document, Object_Id(id))
+}
+
+engine_set_rect_geometry :: proc(id: i32, x, y, width, height: f32) -> bool {
+	return document_set_rect_geometry_by_id(&state.document, Object_Id(id), x, y, width, height)
 }
 
 engine_gpu_clear_frame :: proc() -> bool {

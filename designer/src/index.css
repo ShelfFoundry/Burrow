@@ -1,0 +1,107 @@
+@import "tailwindcss";
+@import "@fontsource-variable/noto-sans";
+@import "./theme.css";
+
+@custom-variant dark (&:where([theme="dark"], [theme="dark"] *));
+/* Desktop editor: plain :hover, without Tailwind's (hover: hover) media guard.
+   Disabled controls never show a hover state. */
+@custom-variant hover (&:hover:not(:disabled, [aria-disabled="true"]));
+
+/* UI roles built from the palette in theme.css. */
+:root {
+  --surface: var(--grey-50);
+  --canvas: var(--grey-200);
+  --field: var(--grey-100);
+  --hover: var(--grey-100);
+  --selected: var(--grey-200);
+  --fg-strong: var(--grey-950);
+  --fg-muted: var(--grey-500);
+}
+
+html[theme="dark"] {
+  color-scheme: dark;
+  --surface: var(--grey-900);
+  --canvas: var(--grey-800);
+  --field: var(--grey-800);
+  --hover: var(--grey-800);
+  --selected: var(--grey-700);
+  --fg-strong: var(--grey-100);
+  --fg-muted: var(--grey-500);
+}
+
+@theme inline {
+  /* Only palette colors, no Tailwind defaults. */
+  --color-*: initial;
+  --color-white: #fff;
+  --color-black: #000;
+
+  --color-grey-50: var(--grey-50);
+  --color-grey-100: var(--grey-100);
+  --color-grey-200: var(--grey-200);
+  --color-grey-300: var(--grey-300);
+  --color-grey-400: var(--grey-400);
+  --color-grey-500: var(--grey-500);
+  --color-grey-600: var(--grey-600);
+  --color-grey-700: var(--grey-700);
+  --color-grey-800: var(--grey-800);
+  --color-grey-900: var(--grey-900);
+  --color-grey-950: var(--grey-950);
+
+  --color-primary: var(--primary);
+  --color-primary-alt: var(--primary-alt);
+
+  --color-red: var(--red);
+  --color-yellow: var(--yellow);
+  --color-green: var(--green);
+  --color-blue: var(--blue);
+  --color-purple: var(--purple);
+  --color-aqua: var(--aqua);
+
+  --color-red-alt: var(--red-alt);
+  --color-yellow-alt: var(--yellow-alt);
+  --color-green-alt: var(--green-alt);
+  --color-blue-alt: var(--blue-alt);
+  --color-purple-alt: var(--purple-alt);
+  --color-aqua-alt: var(--aqua-alt);
+
+  --color-fg: var(--text);
+  --color-fg-strong: var(--fg-strong);
+  --color-fg-muted: var(--fg-muted);
+  --color-border: var(--border);
+  --color-surface: var(--surface);
+  --color-canvas: var(--canvas);
+  --color-field: var(--field);
+  --color-hover: var(--hover);
+  --color-selected: var(--selected);
+
+  /* --radius-md and --ease-* share Tailwind's names, so theme.css (unlayered)
+     already overrides rounded-md and ease-* utilities. */
+
+  --font-sans: "Noto Sans Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-surface font-sans text-[13px] text-fg antialiased;
+  }
+
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Set on <html> while a layer is being dragged. */
+  html.is-dragging,
+  html.is-dragging * {
+    cursor: grabbing !important;
+  }
+
+  ::placeholder {
+    color: var(--fg-muted);
+  }
+}
