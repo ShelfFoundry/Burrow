@@ -54,6 +54,18 @@ engine_is_initialized :: proc() -> bool {
 	return state.initialized
 }
 
+engine_document_revision :: proc() -> i32 {
+	return state.document.revision
+}
+
+engine_object_id_at :: proc(index: i32) -> Object_Id {
+	obj := document_get_object_by_index(&state.document, int(index))
+	if obj == nil {
+		return 0
+	}
+	return obj.id
+}
+
 engine_page_width :: proc() -> f32 {
 	return document_page_width(&state.document)
 }
@@ -575,6 +587,20 @@ engine_update_selection_from_current_pointer :: proc() -> i32 {
 
 	selection_clear(&state.selection)
 	return 0
+}
+
+engine_select_object_by_id :: proc(id: Object_Id, mode: Selection_Mode) -> bool {
+	obj := document_get_object_by_id(&state.document, id)
+	if obj == nil {
+		return false
+	}
+	switch mode {
+	case .Replace:
+		selection_replace(&state.selection, obj.id)
+	case .Toggle:
+		selection_toggle(&state.selection, obj.id)
+	}
+	return true
 }
 
 engine_clear_interaction :: proc() {

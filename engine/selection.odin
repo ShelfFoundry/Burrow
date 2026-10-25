@@ -25,6 +25,11 @@ Line_Handle :: enum {
 	End,
 }
 
+Selection_Mode :: enum {
+	Replace,
+	Toggle,
+}
+
 selection_clear :: proc(selection: ^Selection_State) {
 	selection.count = 0
 }

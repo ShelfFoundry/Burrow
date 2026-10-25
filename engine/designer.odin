@@ -470,4 +470,23 @@ designer_add_full_rect :: proc(
 	)
 }
 
+@(export)
+designer_object_id_at :: proc(index: i32) -> i32 {
+	return i32(engine_object_id_at(index))
+}
+
+@(export)
+designer_select_object_by_id :: proc(id: i32, mode: i32) -> i32 {
+	selection_mode := Selection_Mode(mode)
+	if selection_mode < min(Selection_Mode) || selection_mode > max(Selection_Mode) {
+		return 0
+	}
+	return i32(engine_select_object_by_id(Object_Id(id), selection_mode))
+}
+
+@(export)
+designer_document_revision :: proc() -> i32 {
+	return engine_document_revision()
+}
+
 main :: proc() {}
