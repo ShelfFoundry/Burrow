@@ -62,12 +62,39 @@ Editor_Document :: struct {
 	revision:       i32,
 }
 
+Edit_Command :: struct {
+	action:  Edit_Action,
+	targets: [MAX_SELECTED_OBJECTS]Object_Id,
+	count:   int,
+}
+
+Edit_Action :: union {
+	Edit_Action_Translate,
+}
+
+Edit_Action_Translate :: struct {
+	dx, dy: f32,
+}
+
 document_init_blank :: proc(document: ^Editor_Document, page_width, page_height: f32) {
 	document.page.width = page_width
 	document.page.height = page_height
 	document.object_count = 0
 	document.next_object_id = 1
 	document.revision = 0
+}
+
+document_apply :: proc(document: ^Editor_Document, command: Edit_Command) -> bool {
+	switch v in command.action {
+	case Edit_Action_Translate:
+		for i in 0 ..< command.count {
+			document_translate_object_by_id(document, command.targets[i], v.dx, v.dy)
+		}
+	case nil:
+		return false
+	}
+	document.revision += 1
+	return true
 }
 
 document_add_line :: proc(
@@ -291,12 +318,18 @@ document_translate_selection :: proc(
 	selection: ^Selection_State,
 	dx, dy: f32,
 ) {
-	if document == nil || selection == nil {
+	if document == nil || selection == nil || selection.count == 0 {
 		return
 	}
 
-	for i in 0 ..< selection.count {
-		document_translate_object_by_id(document, selection.ids[i], dx, dy)
+	cmd := Edit_Command {
+		action = Edit_Action_Translate{dx = dx, dy = dy},
 	}
-}
 
+	for i in 0 ..< selection.count {
+		cmd.targets[i] = selection.ids[i]
+		cmd.count += 1
+	}
+
+	document_apply(document, cmd)
+}
