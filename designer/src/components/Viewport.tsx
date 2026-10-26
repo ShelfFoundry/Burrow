@@ -45,6 +45,9 @@ export type ViewportController = {
   // Abandons an in-progress drag, putting everything back. Returns false if nothing was
   // in progress.
   cancelInteraction: () => boolean;
+  // Each returns false if there was nothing to undo/redo or a drag is in progress.
+  undo: () => boolean;
+  redo: () => boolean;
 };
 
 type ViewportProps = {
@@ -132,7 +135,21 @@ export function Viewport(props: ViewportProps) {
       getObjects: () => engine?.getObjects() ?? [],
       selectObject,
       cancelInteraction,
+      undo: () => applyHistory("undo"),
+      redo: () => applyHistory("redo"),
     });
+  }
+
+  function applyHistory(direction: "undo" | "redo"): boolean {
+    if (!engine) return false;
+
+    const ok = direction === "undo" ? engine.undo() : engine.redo();
+    if (ok) {
+      odinLoop?.requestRender();
+      publishEngineState();
+    }
+    props.onStatusChange(ok ? (direction === "undo" ? "Undo" : "Redo") : `Nothing to ${direction}`);
+    return ok;
   }
 
   function cancelInteraction(): boolean {
@@ -301,22 +318,6 @@ export function Viewport(props: ViewportProps) {
       const message = error instanceof Error ? error.message : "Unknown viewport error";
       props.onStatusChange(`Viewport failed: ${message}`);
     }
-
-    window.addEventListener("keydown", (event) => {
-      const isUndo = (event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "z";
-      const isRedo = (event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "z";
-      if (isUndo) {
-        event.preventDefault();
-        //const ok = loop?.undo() ?? false;
-        //props.onStatusChange(ok ? "Undo" : "Nothing to undo");
-      }
-      if (isRedo) {
-        event.preventDefault();
-        //const ok = loop?.redo() ?? false;
-        //props.onStatusChange(ok ? "Redo" : "Nothing to redo");
-      }
-    });
-
   });
 
   onCleanup(() => {

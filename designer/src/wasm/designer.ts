@@ -69,6 +69,10 @@ export type DesignerWasmExports = {
     // Cancels the active gesture, restoring what it changed. Returns 1 if a gesture was
     // cancelled, 0 if none was active.
     designer_cancel_interaction: () => number;
+    // Each returns 1 if an edit was undone/redone, 0 if there was nothing to undo/redo or a
+    // gesture is in progress.
+    designer_undo: () => number;
+    designer_redo: () => number;
 
     designer_clear_selection: () => void;
     designer_selection_count: () => number;

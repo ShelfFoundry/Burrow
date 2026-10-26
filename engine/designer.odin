@@ -501,4 +501,20 @@ designer_cancel_interaction :: proc() -> i32 {
 	return 0
 }
 
+@(export)
+designer_undo :: proc() -> i32 {
+	if engine_undo() {
+		return 1
+	}
+	return 0
+}
+
+@(export)
+designer_redo :: proc() -> i32 {
+	if engine_redo() {
+		return 1
+	}
+	return 0
+}
+
 main :: proc() {}

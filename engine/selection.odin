@@ -141,3 +141,14 @@ selection_handle_rect :: proc(center: Point) -> Rect {
 
 	return Rect{x = center.x - half, y = center.y - half, width = size, height = size}
 }
+
+selection_prune :: proc(selection: ^Selection_State, document: ^Editor_Document) {
+	i := 0
+	for i < selection.count {
+		if document_get_object_by_id(document, selection.ids[i]) == nil {
+			selection_remove(selection, selection.ids[i])
+		} else {
+			i += 1
+		}
+	}
+}

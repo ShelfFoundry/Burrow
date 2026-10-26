@@ -436,7 +436,7 @@ engine_commit_drag :: proc() -> bool {
 	if !changed {
 		return false
 	}
-	return document_apply(&state.document, Edit_Command{action = action})
+	return document_execute(&state.document, Edit_Command{action = action})
 }
 
 engine_pointer_leave :: proc() {
@@ -834,4 +834,30 @@ engine_tool :: proc() -> Tool {
 
 engine_last_interaction_object_id :: proc() -> Object_Id {
 	return state.last_interaction.object_id
+}
+
+engine_undo :: proc() -> bool {
+	if state.interaction.mode != .Idle {
+		return false
+	}
+	
+	if !document_undo(&state.document) {
+		return false
+	}
+
+	selection_prune(&state.selection, &state.document)
+	return true
+}
+
+engine_redo :: proc() -> bool {
+	if state.interaction.mode != .Idle {
+		return false
+	}
+
+	if !document_redo(&state.document)  {
+		return false
+	}
+
+	selection_prune(&state.selection, &state.document)
+	return true
 }

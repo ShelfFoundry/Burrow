@@ -56,8 +56,8 @@ export default function App() {
       setStatus(`Group ${ids.length} ${ids.length === 1 ? "layer" : "layers"} needs engine support`),
   };
 
-  // Ctrl/Cmd+G groups the selection, like Figma. Escape cancels a drag in progress, or
-  // otherwise leaves a creation tool.
+  // Ctrl/Cmd+G groups the selection, like Figma. Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z or
+  // Ctrl+Y redoes. Escape cancels a drag in progress, or otherwise leaves a creation tool.
   onMount(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !isEditingText(event.target)) {
@@ -69,6 +69,18 @@ export default function App() {
           setActiveTool("select");
           return;
         }
+      }
+
+      // Text fields keep the browser's own undo.
+      const mod = (event.ctrlKey || event.metaKey) && !event.altKey;
+      const key = event.key.toLowerCase();
+      const isUndo = mod && !event.shiftKey && key === "z";
+      const isRedo = mod && ((event.shiftKey && key === "z") || (!event.shiftKey && key === "y"));
+      if ((isUndo || isRedo) && !isEditingText(event.target)) {
+        event.preventDefault();
+        if (isUndo) viewportController()?.undo();
+        else viewportController()?.redo();
+        return;
       }
 
       const isGroup =

@@ -181,6 +181,9 @@ export type Engine = {
     getLastInteractionObjectId: () => number;
     // Returns true if a gesture was active and has been cancelled.
     cancelInteraction: () => boolean;
+    // Each returns false if there was nothing to undo/redo or a gesture is in progress.
+    undo: () => boolean;
+    redo: () => boolean;
     pointerCancel: () => void;
     pointerLeave: () => void;
     pointerModifiers: (event: PointerEvent) => number;
@@ -356,6 +359,14 @@ export async function createEngine(): Promise<Engine> {
 
     function cancelInteraction(): boolean {
         return wasm.exports.designer_cancel_interaction() !== 0;
+    }
+
+    function undo(): boolean {
+        return wasm.exports.designer_undo() !== 0;
+    }
+
+    function redo(): boolean {
+        return wasm.exports.designer_redo() !== 0;
     }
 
     function pointerCancel(): void {
@@ -615,6 +626,8 @@ export async function createEngine(): Promise<Engine> {
         pointerUp,
         getLastInteractionObjectId,
         cancelInteraction,
+        undo,
+        redo,
         pointerCancel,
         pointerLeave,
         pointerModifiers,

@@ -60,6 +60,7 @@ Editor_Document :: struct {
 	objects:        [MAX_OBJECTS]Editor_Object,
 	next_object_id: i32,
 	revision:       i32,
+	history:        History,
 }
 
 Edit_Command :: struct {
@@ -70,6 +71,11 @@ Edit_Action :: union {
 	Edit_Action_Set_Objects,
 	Edit_Action_Add_Rect,
 	Edit_Action_Add_Line,
+	Edit_Action_Remove_Object,
+}
+
+Edit_Action_Remove_Object :: struct {
+	id: Object_Id,
 }
 
 Edit_Action_Set_Objects :: struct {
@@ -98,31 +104,7 @@ document_init_blank :: proc(document: ^Editor_Document, page_width, page_height:
 	document.object_count = 0
 	document.next_object_id = 1
 	document.revision = 0
-}
-
-document_apply :: proc(document: ^Editor_Document, command: Edit_Command) -> bool {
-	ok := true
-	switch v in command.action {
-	case Edit_Action_Set_Objects:
-		for i in 0 ..< v.count {
-			object := document_get_object_by_id(document, v.after[i].id)
-			if object == nil {
-				ok = false
-				continue
-			}
-			object^ = v.after[i]
-		}
-	case Edit_Action_Add_Rect:
-		ok = document_add_rect(document, v.id, v.name_id, v.x, v.y, v.width, v.height, v.fill)
-	case Edit_Action_Add_Line:
-		ok = document_add_line(document, v.id, v.name_id, v.x1, v.y1, v.x2, v.y2, v.stroke)
-	case nil:
-		ok = false
-	}
-	if ok {
-		document.revision += 1
-	}
-	return ok
+	history_clear(&document.history)
 }
 
 document_add_line_auto_id :: proc(
@@ -145,7 +127,7 @@ document_add_line_auto_id :: proc(
 		},
 	}
 
-	ok := document_apply(document, cmd)
+	ok := document_execute(document, cmd)
 
 	if !ok {
 		return Object_Id(0)
@@ -199,7 +181,7 @@ document_add_rect_auto_id :: proc(
 		},
 	}
 
-	ok := document_apply(document, cmd)
+	ok := document_execute(document, cmd)
 
 	if !ok {
 		return Object_Id(0)
@@ -207,6 +189,21 @@ document_add_rect_auto_id :: proc(
 
 	document.next_object_id += 1
 	return id
+}
+
+document_remove_object :: proc(document: ^Editor_Document, id: Object_Id) -> bool {
+	for i in 0 ..< document.object_count {
+		if document.objects[i].id != id {
+			continue
+		}
+		copy(
+			document.objects[i:document.object_count - 1],
+			document.objects[i + 1:document.object_count],
+		)
+		document.object_count -= 1
+		return true
+	}
+	return false
 }
 
 document_add_rect :: proc(
@@ -256,6 +253,7 @@ document_page_height :: proc(document: ^Editor_Document) -> f32 {
 document_clear_objects :: proc(document: ^Editor_Document) {
 	document.object_count = 0
 	document.next_object_id = 1
+	history_clear(&document.history)
 }
 
 document_get_object_by_index :: proc(document: ^Editor_Document, index: int) -> ^Editor_Object {
@@ -305,4 +303,3 @@ document_translate_object_by_id :: proc(
 	object_translate(object, dx, dy)
 	return true
 }
-
