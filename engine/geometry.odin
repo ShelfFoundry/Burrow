@@ -66,11 +66,6 @@ rect_union :: proc(a, b: Rect) -> Rect {
 	return Rect{x = x0, y = y0, width = x1 - x0, height = y1 - y0}
 }
 
-rect_from_snapped_points :: proc(a, b: Point) -> Rect {
-	start_point, end_point := snap_point(a), snap_point(b)
-	return rect_from_points(start_point, end_point)
-}
-
 rect_from_points :: proc(a, b: Point) -> Rect {
 	x0 := min_f32(a.x, b.x)
 	y0 := min_f32(a.y, b.y)

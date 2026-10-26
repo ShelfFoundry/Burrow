@@ -57,9 +57,9 @@ rect_tool_pointer_down :: proc() -> Interaction_Result {
 }
 
 rect_tool_object :: proc(interaction: ^Interaction_State) -> Editor_Object {
-	rect := rect_from_snapped_points(interaction.start_pointer_page, interaction.last_pointer_page)
+	rect := rect_from_points(interaction.start_pointer_page, interaction.last_pointer_page)
 
-	return Editor_Object {
+	object := Editor_Object {
 		kind = .Rect,
 		rect = Rect_Object {
 			x = rect.x,
@@ -70,6 +70,8 @@ rect_tool_object :: proc(interaction: ^Interaction_State) -> Editor_Object {
 			fill = RGBA{0.0, 0.0, 0.0, 1.0},
 		},
 	}
+	object_snap_to_pixels(&object)
+	return object
 }
 
 rect_tool_commit :: proc(interaction: ^Interaction_State) -> Interaction_Result {
@@ -103,14 +105,14 @@ line_tool_pointer_down :: proc() -> Interaction_Result {
 }
 
 line_tool_object :: proc(interaction: ^Interaction_State) -> Editor_Object {
-	start := interaction.start_pointer_page
+	start := snap_point(interaction.start_pointer_page)
 	end := interaction.last_pointer_page
 
 	if engine_shift_down() {
 		end = snap_point_to_45_from_anchor(start, end)
 	}
 
-	return Editor_Object {
+	object := Editor_Object {
 		kind = .Line,
 		line = Line_Object {
 			x1 = start.x,
@@ -120,6 +122,8 @@ line_tool_object :: proc(interaction: ^Interaction_State) -> Editor_Object {
 			stroke = Stroke_Style{color = RGBA{0.0, 0.0, 0.0, 1.0}, width = 2.0},
 		},
 	}
+	object_snap_to_pixels(&object)
+	return object
 }
 
 line_tool_commit :: proc(interaction: ^Interaction_State) -> Interaction_Result {

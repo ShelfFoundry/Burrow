@@ -408,13 +408,18 @@ engine_drag_line_handle_to_current_pointer :: proc() -> bool {
 		target = snap_point_to_45_from_anchor(anchor, target)
 	}
 
-	return document_move_line_handle_by_id(
+	if !document_move_line_handle_by_id(
 		&state.document,
 		state.interaction.active_object_id,
 		state.interaction.line_handle,
 		target.x,
 		target.y,
-	)
+	) {
+		return false
+	}
+
+	object_snap_to_pixels(object)
+	return true
 }
 
 engine_hit_test_interaction_at_current_pointer :: proc() -> Hit_Result {

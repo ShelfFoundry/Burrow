@@ -54,6 +54,7 @@ drag_snapshot_apply_resize :: proc(
 		case .Line:
 			object.line = line_object_map_bounds(saved.line, snapshot.bounds, new_bounds)
 		}
+		object_snap_to_pixels(object)
 	}
 }
 
@@ -70,5 +71,6 @@ drag_snapshot_apply_translate :: proc(
 		}
 		object^ = saved
 		object_translate(object, dx, dy)
+		object_snap_to_pixels(object)
 	}
 }

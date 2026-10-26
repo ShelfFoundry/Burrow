@@ -289,6 +289,34 @@ object_translate :: proc(object: ^Editor_Object, dx, dy: f32) {
 	}
 }
 
+// NOTE: puts an object on whole page pixels. Rects snap their edtges
+// rather than x/width so objects that share an edge still share it after
+// snapping.
+object_snap_to_pixels :: proc(object: ^Editor_Object) {
+	if object == nil {
+		return
+	}
+
+	switch object.kind {
+	case .Rect:
+		p0 := snap_point(Point{x = object.rect.x, y = object.rect.y})
+		p1 := snap_point(
+			Point{x = object.rect.x + object.rect.width, y = object.rect.y + object.rect.height},
+		)
+		object.rect.x = p0.x
+		object.rect.y = p0.y
+		object.rect.width = p1.x - p0.x
+		object.rect.height = p1.y - p0.y
+	case .Line:
+		p1 := snap_point(Point{x = object.line.x1, y = object.line.y1})
+		p2 := snap_point(Point{x = object.line.x2, y = object.line.y2})
+		object.line.x1 = p1.x
+		object.line.y1 = p1.y
+		object.line.x2 = p2.x
+		object.line.y2 = p2.y
+	}
+}
+
 document_translate_object_by_id :: proc(
 	document: ^Editor_Document,
 	id: Object_Id,
