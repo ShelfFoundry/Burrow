@@ -1,17 +1,23 @@
 package designer
 
 engine_set_interaction_pointer_start :: proc() {
-	state.interaction.start_pointer_page = Point {
-		x = state.pointer.page_x,
-		y = state.pointer.page_y,
-	}
+	state.interaction.start_pointer_page = engine_current_page_pointer()
 	state.interaction.last_pointer_page = state.interaction.start_pointer_page
-
-	state.interaction.start_pointer_screen = Point {
-		x = state.pointer.x,
-		y = state.pointer.y,
-	}
+	state.interaction.start_pointer_screen = engine_current_screen_pointer()
 	state.interaction.last_pointer_screen = state.interaction.start_pointer_screen
+}
+
+engine_current_page_pointer :: proc() -> Point {
+	return Point{x = state.pointer.page_x, y = state.pointer.page_y}
+}
+
+engine_current_screen_pointer :: proc() -> Point {
+	return Point{x = state.pointer.x, y = state.pointer.y}
+}
+
+engine_set_interaction_pointer_last :: proc() {
+	state.interaction.last_pointer_page = engine_current_page_pointer()
+	state.interaction.last_pointer_screen = engine_current_screen_pointer()
 }
 
 engine_start_line_handle_interaction :: proc(active_object_id: Object_Id, handle: Line_Handle) {
@@ -47,10 +53,7 @@ engine_drag_resize_handle_by_current_pointer :: proc() -> bool {
 	}
 
 	if state.interaction.active_object_id == Object_Id(0) {
-		current := Point {
-			x = state.pointer.page_x,
-			y = state.pointer.page_y,
-		}
+		current := engine_current_page_pointer()
 
 		total_dx := current.x - state.interaction.start_pointer_page.x
 		total_dy := current.y - state.interaction.start_pointer_page.y
@@ -81,11 +84,7 @@ engine_drag_resize_handle_by_current_pointer :: proc() -> bool {
 			return false
 		}
 
-		state.interaction.last_pointer_page = current
-		state.interaction.last_pointer_screen = Point {
-			x = state.pointer.x,
-			y = state.pointer.y,
-		}
+		engine_set_interaction_pointer_last()
 
 		return true
 
@@ -100,11 +99,7 @@ engine_drag_resize_handle_by_current_pointer :: proc() -> bool {
 	   resize_handle_is_corner(state.interaction.resize_handle) &&
 	   state.interaction.has_start_rect {
 
-		current := Point {
-			x = state.pointer.page_x,
-			y = state.pointer.page_y,
-		}
-
+		current := engine_current_page_pointer()
 		total_dx := current.x - state.interaction.start_pointer_page.x
 		total_dy := current.y - state.interaction.start_pointer_page.y
 
@@ -126,20 +121,11 @@ engine_drag_resize_handle_by_current_pointer :: proc() -> bool {
 			return false
 		}
 
-		state.interaction.last_pointer_page = current
-		state.interaction.last_pointer_screen = Point {
-			x = state.pointer.x,
-			y = state.pointer.y,
-		}
-
+		engine_set_interaction_pointer_last()
 		return true
 	}
 
-	current := Point {
-		x = state.pointer.page_x,
-		y = state.pointer.page_y,
-	}
-
+	current := engine_current_page_pointer()
 	dx := current.x - state.interaction.last_pointer_page.x
 	dy := current.y - state.interaction.last_pointer_page.y
 
@@ -159,12 +145,7 @@ engine_drag_resize_handle_by_current_pointer :: proc() -> bool {
 		return false
 	}
 
-	state.interaction.last_pointer_page = current
-	state.interaction.last_pointer_screen = Point {
-		x = state.pointer.x,
-		y = state.pointer.y,
-	}
-
+	engine_set_interaction_pointer_last()
 	return true
 }
 

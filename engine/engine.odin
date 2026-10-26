@@ -227,38 +227,21 @@ engine_start_move_interaction :: proc(active_object_id: Object_Id) {
 engine_pointer_move_interaction :: proc() -> Interaction_Result {
 	switch state.interaction.mode {
 	case .Creating_Rect:
-		current := Point {
-			x = state.pointer.page_x,
-			y = state.pointer.page_y,
-		}
-		state.interaction.last_pointer_page = current
-		state.interaction.last_pointer_screen = Point {
-			x = state.pointer.x,
-			y = state.pointer.y,
-		}
+		engine_set_interaction_pointer_last()
 		state.last_interaction = Interaction_Result {
 			kind = .Creating_Rect,
 		}
 	case .Creating_Line:
 		return state.last_interaction
 	case .Moving_Selection:
-		current := Point {
-			x = state.pointer.page_x,
-			y = state.pointer.page_y,
-		}
-
+		current := engine_current_page_pointer()
 		dx := current.x - state.interaction.last_pointer_page.x
 		dy := current.y - state.interaction.last_pointer_page.y
-
 		if dx != 0.0 || dy != 0.0 {
 			document_translate_selection(&state.document, &state.selection, dx, dy)
 		}
 
-		state.interaction.last_pointer_page = current
-		state.interaction.last_pointer_screen = Point {
-			x = state.pointer.x,
-			y = state.pointer.y,
-		}
+		engine_set_interaction_pointer_last()
 
 		state.last_interaction = Interaction_Result {
 			kind      = .Move_Selection,
@@ -306,7 +289,13 @@ engine_pointer_up_interaction :: proc() -> Interaction_Result {
 
 	engine_clear_interaction()
 
-	if previous_mode == .Creating_Rect {
+	switch previous_mode {
+	case .Creating_Line:
+		// TODO: replace once creating lines is finished
+		state.last_interaction = Interaction_Result {
+			kind = .None,
+		}
+	case .Creating_Rect:
 		rect := rect_from_points(previous_start_pointer_page, previous_last_pointer_page)
 		if rect.width < MIN_RECT_SIZE || rect.height < MIN_RECT_SIZE {
 			state.last_interaction = Interaction_Result {
@@ -327,49 +316,37 @@ engine_pointer_up_interaction :: proc() -> Interaction_Result {
 			state.last_interaction = Interaction_Result {
 				kind = .Document_Full,
 			}
-			return state.last_interaction
+		} else {
+			state.last_interaction = Interaction_Result {
+				kind      = .Object_Created,
+				object_id = id,
+			}
+			selection_replace(&state.selection, id)
+			engine_set_tool(.Select)
 		}
-		state.last_interaction = Interaction_Result {
-			kind      = .Object_Created,
-			object_id = id,
-		}
-		selection_replace(&state.selection, id)
-		engine_set_tool(.Select)
-		return state.last_interaction
-	}
-
-	if previous_mode == .Moving_Selection {
+	case .Moving_Selection:
 		state.last_interaction = Interaction_Result {
 			kind      = .Move_Selection,
 			object_id = previous_object_id,
 		}
-
-		return state.last_interaction
-	}
-
-	if previous_mode == .Line_Handle {
+	case .Line_Handle:
 		state.last_interaction = Interaction_Result {
 			kind        = .Line_Handle,
 			object_id   = previous_object_id,
 			line_handle = previous_line_handle,
 		}
-
-		return state.last_interaction
-	}
-
-	if previous_mode == .Resize_Handle {
+	case .Resize_Handle:
 		state.last_interaction = Interaction_Result {
 			kind          = .Resize_Handle,
 			object_id     = previous_object_id,
 			resize_handle = previous_resize_handle,
 		}
-
-		return state.last_interaction
+	case .Idle:
+		state.last_interaction = Interaction_Result {
+			kind = .None,
+		}
 	}
 
-	state.last_interaction = Interaction_Result {
-		kind = .None,
-	}
 	return state.last_interaction
 }
 
@@ -471,10 +448,7 @@ engine_drag_line_handle_to_current_pointer :: proc() -> bool {
 		return false
 	}
 
-	target := Point {
-		x = state.pointer.page_x,
-		y = state.pointer.page_y,
-	}
+	target := engine_current_page_pointer()
 
 	if engine_shift_down() {
 		anchor := Point{}
@@ -504,10 +478,7 @@ engine_drag_line_handle_to_current_pointer :: proc() -> bool {
 }
 
 engine_hit_test_interaction_at_current_pointer :: proc() -> Hit_Result {
-	screen_point := Point {
-		x = state.pointer.x,
-		y = state.pointer.y,
-	}
+	screen_point := engine_current_screen_pointer()
 
 	handle_hit := hit_test_selection_handles(
 		&state.document,
@@ -616,11 +587,7 @@ engine_pointer_inside_selection_group_bounds :: proc() -> bool {
 		return false
 	}
 
-	point := Point {
-		x = state.pointer.page_x,
-		y = state.pointer.page_y,
-	}
-
+	point := engine_current_page_pointer()
 	return point_in_rect(point, bounds)
 }
 
