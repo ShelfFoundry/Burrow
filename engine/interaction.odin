@@ -1,6 +1,7 @@
 package designer
 
 MIN_RECT_SIZE :: 4.0
+MIN_LINE_LENGTH :: 4.0
 
 Interaction_Mode :: enum {
 	Idle,

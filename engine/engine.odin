@@ -125,10 +125,7 @@ engine_pointer_down_interaction :: proc() -> Interaction_Result {
 	case .Rect:
 		result = rect_tool_pointer_down()
 	case .Line:
-		// TODO: refactor line creation
-		result = Interaction_Result {
-			kind = .None,
-		}
+		result = line_tool_pointer_down()
 	case .Pan:
 		// TODO: add pan later
 		result = Interaction_Result {
@@ -160,7 +157,10 @@ engine_pointer_move_interaction :: proc() -> Interaction_Result {
 			kind = .Creating_Rect,
 		}
 	case .Creating_Line:
-		return state.last_interaction
+		engine_set_interaction_pointer_last()
+		state.last_interaction = Interaction_Result {
+			kind = .Creating_Line,
+		}
 	case .Moving_Selection:
 		current := engine_current_page_pointer()
 		dx := current.x - state.interaction.start_pointer_page.x
@@ -236,6 +236,7 @@ engine_pointer_up_interaction :: proc() -> Interaction_Result {
 	case .Creating_Rect:
 		result = rect_tool_commit(interaction)
 	case .Creating_Line:
+		result = line_tool_commit(interaction)
 	case .Idle:
 	}
 
@@ -456,21 +457,9 @@ engine_render_document :: proc() -> bool {
 	preview_obj: Maybe(Editor_Object)
 	#partial switch state.interaction.mode {
 	case .Creating_Rect:
-		rect := rect_from_snapped_points(
-			state.interaction.start_pointer_page,
-			state.interaction.last_pointer_page,
-		)
-		preview_obj = Editor_Object {
-			kind = .Rect,
-			rect = Rect_Object {
-				x = rect.x,
-				y = rect.y,
-				width = rect.width,
-				height = rect.height,
-				fill_enabled = true,
-				fill = RGBA{0.0, 0.0, 0.0, 1.0},
-			},
-		}
+		preview_obj = rect_tool_object(&state.interaction)
+	case .Creating_Line:
+		preview_obj = line_tool_object(&state.interaction)
 	}
 
 	return gpu_render_document(

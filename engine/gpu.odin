@@ -446,47 +446,28 @@ gpu_render_document :: proc(
 	}
 
 	for i in 0 ..< document.object_count {
-		object := document.objects[i]
-
-		if object.kind == .Rect {
-			ok = gpu_push_rect_object_vertices(
-				raw_data(vertices[:]),
-				&vertex_count,
-				object,
-				transform,
-				viewport_width,
-				viewport_height,
-			)
-		} else if object.kind == .Line {
-			ok = gpu_push_line_object_vertices(
-				raw_data(vertices[:]),
-				&vertex_count,
-				object,
-				transform,
-				viewport_width,
-				viewport_height,
-			)
-		} else {
-			ok = true
-		}
-
+		ok = gpu_push_object_vertices(
+			raw_data(vertices[:]),
+			&vertex_count,
+			document.objects[i],
+			transform,
+			viewport_width,
+			viewport_height,
+		)
 		if !ok {
 			return false
 		}
 	}
 
-	if preview_obj, exists := preview_obj.?; exists {
-		#partial switch preview_obj.kind {
-		case .Rect:
-			ok = gpu_push_rect_object_vertices(
-				raw_data(vertices[:]),
-				&vertex_count,
-				preview_obj,
-				transform,
-				viewport_width,
-				viewport_height,
-			)
-		}
+	if preview, exists := preview_obj.?; exists {
+		ok = gpu_push_object_vertices(
+			raw_data(vertices[:]),
+			&vertex_count,
+			preview,
+			transform,
+			viewport_width,
+			viewport_height,
+		)
 		if !ok {
 			return false
 		}
@@ -875,6 +856,36 @@ gpu_push_rect_vertices :: proc(
 
 	vertex_count^ += 6
 
+	return true
+}
+
+gpu_push_object_vertices :: proc(
+	vertices: [^]Vertex,
+	vertex_count: ^int,
+	object: Editor_Object,
+	transform: Viewport_Transform,
+	viewport_width, viewport_height: f32,
+) -> bool {
+	switch object.kind {
+	case .Rect:
+		return gpu_push_rect_object_vertices(
+			vertices,
+			vertex_count,
+			object,
+			transform,
+			viewport_width,
+			viewport_height,
+		)
+	case .Line:
+		return gpu_push_line_object_vertices(
+			vertices,
+			vertex_count,
+			object,
+			transform,
+			viewport_width,
+			viewport_height,
+		)
+	}
 	return true
 }
 

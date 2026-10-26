@@ -6,6 +6,7 @@ import {
   type DocumentObject,
   type Engine,
   type EngineTool,
+  type InteractionResultKind,
   type RectEditableProperty,
   type SelectedObjectSnapshot,
   type SelectionMode,
@@ -29,10 +30,6 @@ declare global {
     burrowEngine?: Engine;
   }
 }
-
-// Defaults for objects drawn with the dock's creation tools.
-const NEW_OBJECT_COLOR = { r: 0, g: 0, b: 0, a: 1 };
-const NEW_LINE_WIDTH = 2;
 
 export type ViewportController = {
   setSelectionRectProperty: (
@@ -72,17 +69,8 @@ export function Viewport(props: ViewportProps) {
   // Last document revision passed to onDocumentRevisionChange.
   let publishedRevision: number | undefined;
 
-  // Page-space point where the current line drag started.
-  let lineStart: { x: number; y: number } | undefined;
-  // Whether the current press started an interim (JS-side) creation, so the rest of the
-  // gesture skips the engine's interaction even if the tool changes mid-drag.
-  let creatingGesture = false;
-
   // While Square or Line is active, the canvas creates objects instead of selecting them.
   const isCreating = () => props.activeTool === "square" || props.activeTool === "line";
-  // Square goes through the engine's creation interaction. Line still uses the interim
-  // JS placement below until the engine has a Creating_Line path.
-  const usesInterimCreation = () => props.activeTool === "line";
 
   async function startOdinRenderer(canvas: HTMLCanvasElement) {
     engine = await createEngine();
@@ -155,11 +143,7 @@ export function Viewport(props: ViewportProps) {
   function cancelInteraction(): boolean {
     if (!engine) return false;
 
-    // The interim line drag lives in JS, so it's cancelled here rather than in the engine.
-    const hadLine = lineStart !== undefined;
-    lineStart = undefined;
-
-    const cancelled = engine.cancelInteraction() || hadLine;
+    const cancelled = engine.cancelInteraction();
     if (cancelled) {
       odinLoop?.requestRender();
       publishEngineState();
@@ -176,32 +160,19 @@ export function Viewport(props: ViewportProps) {
 
   createEffect(syncTool);
 
-  // Line: a drag draws a line from the press point to the release point.
-  function createOnPointerDown() {
+  // Reports the end of a creation gesture. The engine has already selected the new
+  // object and switched itself back to Select; this tells the app to follow.
+  function finishCreation(result: InteractionResultKind) {
     if (!engine) return;
-    lineStart = engine.getPointerPagePosition();
-  }
 
-  function createOnPointerUp() {
-    if (!engine || !lineStart) return;
-    const start = lineStart;
-    const end = engine.getPointerPagePosition();
-    lineStart = undefined;
-
-    // A click without a drag has no length to draw, so stay in the Line tool.
-    if (start.x === end.x && start.y === end.y) return;
-
-    finishCreation(engine.addLine(start.x, start.y, end.x, end.y, NEW_OBJECT_COLOR, NEW_LINE_WIDTH), "Line");
-  }
-
-  // The add_* exports return 0 when the document has no room for another object.
-  function finishCreation(id: number, kind: string) {
-    if (id === 0) {
-      props.onStatusChange(`Could not add ${kind.toLowerCase()}: the document is full`);
+    if (result === "document_full") {
+      props.onStatusChange("Could not add object: the document is full");
       return;
     }
+    if (result !== "object_created") return;
 
-    const name = engine?.getObjects().find((object) => object.id === id)?.name ?? `${kind} ${id}`;
+    const id = engine.getLastInteractionObjectId();
+    const name = engine.getObjects().find((object) => object.id === id)?.name ?? `Object ${id}`;
     props.onStatusChange(`Added ${name}`);
     props.onObjectCreated?.();
   }
@@ -380,8 +351,6 @@ export function Viewport(props: ViewportProps) {
 
           canvas.setPointerCapture(event.pointerId);
           const viewportEvent = toViewportPointerEvent("pointer_down", canvas, event);
-          const creating = usesInterimCreation() && event.button === 0;
-          creatingGesture = creating;
 
           engine?.pointerDown(
             viewportEvent.x,
@@ -389,10 +358,7 @@ export function Viewport(props: ViewportProps) {
             viewportEvent.button,
             viewportEvent.buttons,
             engine.pointerModifiers(event),
-            !creating,
           );
-
-          if (creating) createOnPointerDown();
 
           if (DEBUG) {
             console.log("Selected object(s)", engine?.getSelectionIds())
@@ -413,7 +379,6 @@ export function Viewport(props: ViewportProps) {
             viewportEvent.y,
             viewportEvent.buttons,
             engine.pointerModifiers(event),
-            !(creatingGesture || usesInterimCreation()),
           );
           odinLoop?.requestRender();
           publishEngineState();
@@ -424,24 +389,14 @@ export function Viewport(props: ViewportProps) {
 
           const viewportEvent = toViewportPointerEvent("pointer_up", canvas, event);
 
-          const creating = creatingGesture;
-          creatingGesture = false;
-
           const result = engine?.pointerUp(
             viewportEvent.x,
             viewportEvent.y,
             viewportEvent.button,
             viewportEvent.buttons,
             engine.pointerModifiers(event),
-            !creating,
           );
-
-          if (creating) createOnPointerUp();
-          if (result === "object_created" && engine) {
-            finishCreation(engine.getLastInteractionObjectId(), "Object");
-          } else if (result === "document_full") {
-            finishCreation(0, "Object");
-          }
+          if (result) finishCreation(result);
 
           odinLoop?.requestRender();
           publishEngineState();
@@ -453,9 +408,8 @@ export function Viewport(props: ViewportProps) {
         onPointerCancel={(event) => {
           const canvas = canvasRef;
           if (!canvas) return;
-          lineStart = undefined;
-          creatingGesture = false;
           engine?.pointerCancel();
+          odinLoop?.requestRender();
           publishEngineState();
           if (canvas.hasPointerCapture(event.pointerId)) {
             canvas.releasePointerCapture(event.pointerId);

@@ -152,32 +152,28 @@ export type Engine = {
     getObjects: () => DocumentObject[];
     getDocumentRevision: () => number;
 
-    // interact = false only updates the engine's pointer state, skipping
-    // selection/move/resize, e.g. during an interim JS-side creation. Each returns
-    // the interaction's result kind, or undefined when interact is false.
+    // Each updates the engine's pointer state, then runs the active gesture (or, on
+    // down, starts one for the active tool) and returns the interaction's result kind.
     pointerDown: (
         x: number,
         y: number,
         button: number,
         buttons: number,
         modifiers: number,
-        interact?: boolean,
-    ) => InteractionResultKind | undefined;
+    ) => InteractionResultKind;
     pointerMove: (
         x: number,
         y: number,
         buttons: number,
         modifiers: number,
-        interact?: boolean,
-    ) => InteractionResultKind | undefined;
+    ) => InteractionResultKind;
     pointerUp: (
         x: number,
         y: number,
         button: number,
         buttons: number,
         modifiers: number,
-        interact?: boolean,
-    ) => InteractionResultKind | undefined;
+    ) => InteractionResultKind;
     getLastInteractionObjectId: () => number;
     // Returns true if a gesture was active and has been cancelled.
     cancelInteraction: () => boolean;
@@ -321,10 +317,8 @@ export async function createEngine(): Promise<Engine> {
         button: number,
         buttons: number,
         modifiers: number,
-        interact = true,
-    ): InteractionResultKind | undefined {
+    ): InteractionResultKind {
         wasm.exports.designer_pointer_down(x, y, button, buttons, modifiers);
-        if (!interact) return undefined;
         return INTERACTION_RESULT_KINDS[wasm.exports.designer_pointer_down_interaction()];
     }
 
@@ -333,10 +327,8 @@ export async function createEngine(): Promise<Engine> {
         y: number,
         buttons: number,
         modifiers: number,
-        interact = true,
-    ): InteractionResultKind | undefined {
+    ): InteractionResultKind {
         wasm.exports.designer_pointer_move(x, y, buttons, modifiers);
-        if (!interact) return undefined;
         return INTERACTION_RESULT_KINDS[wasm.exports.designer_pointer_move_interaction()];
     }
 
@@ -346,10 +338,8 @@ export async function createEngine(): Promise<Engine> {
         button: number,
         buttons: number,
         modifiers: number,
-        interact = true,
-    ): InteractionResultKind | undefined {
+    ): InteractionResultKind {
         wasm.exports.designer_pointer_up(x, y, button, buttons, modifiers);
-        if (!interact) return undefined;
         return INTERACTION_RESULT_KINDS[wasm.exports.designer_pointer_up_interaction()];
     }
 
