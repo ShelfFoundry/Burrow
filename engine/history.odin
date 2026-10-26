@@ -112,3 +112,22 @@ document_redo :: proc(document: ^Editor_Document) -> bool {
 	history.cursor += 1
 	return true
 }
+
+document_set_object :: proc(document: ^Editor_Document, after: Editor_Object) -> bool {
+	object := document_get_object_by_id(document, after.id)
+	if object == nil {
+		return false
+	}
+
+	if object^ == after {
+		return true
+	}
+
+	action := Edit_Action_Set_Objects {
+		count = 1,
+	}
+	action.before[0] = object^
+	action.after[0] = after
+
+	return document_execute(document, Edit_Command{action = action})
+}

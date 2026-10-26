@@ -37,18 +37,15 @@ document_set_rect_geometry_by_id :: proc(
 	x, y, width, height: f32,
 ) -> bool {
 	object := document_get_object_by_id(document, id)
-
-	if object == nil {
+	if object == nil || object.kind != .Rect {
 		return false
 	}
 
-	if object.kind != .Rect {
-		return false
-	}
+	after := object^
+	after.rect.x = x
+	after.rect.y = y
+	after.rect.width = max(width, MIN_RECT_SIZE)
+	after.rect.height = max(height, MIN_RECT_SIZE)
 
-	object.rect.x = x
-	object.rect.y = y
-	object.rect.width = max(width, MIN_RECT_SIZE)
-	object.rect.height = max(height, MIN_RECT_SIZE)
-	return true
+	return document_set_object(document, after)
 }

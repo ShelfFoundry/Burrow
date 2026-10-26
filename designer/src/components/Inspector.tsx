@@ -68,13 +68,13 @@ export function Inspector(props: InspectorProps) {
                     prefix="X"
                     label="X"
                     value={rect().x}
-                    onValueChange={(value) => props.onRectPropertyChange?.("x", value)}
+                    onCommit={(value) => props.onRectPropertyChange?.("x", value)}
                   />
                   <NumberField
                     prefix="Y"
                     label="Y"
                     value={rect().y}
-                    onValueChange={(value) => props.onRectPropertyChange?.("y", value)}
+                    onCommit={(value) => props.onRectPropertyChange?.("y", value)}
                   />
                 </div>
               </PanelSection>
@@ -85,13 +85,13 @@ export function Inspector(props: InspectorProps) {
                     prefix="W"
                     label="Width"
                     value={rect().width}
-                    onValueChange={(value) => props.onRectPropertyChange?.("width", value)}
+                    onCommit={(value) => props.onRectPropertyChange?.("width", value)}
                   />
                   <NumberField
                     prefix="H"
                     label="Height"
                     value={rect().height}
-                    onValueChange={(value) => props.onRectPropertyChange?.("height", value)}
+                    onCommit={(value) => props.onRectPropertyChange?.("height", value)}
                   />
                 </div>
               </PanelSection>

@@ -696,6 +696,9 @@ engine_get_object :: proc(id: i32) -> ^Editor_Object {
 }
 
 engine_set_rect_geometry :: proc(id: i32, x, y, width, height: f32) -> bool {
+	if state.interaction.mode != .Idle {
+		return false
+	}
 	return document_set_rect_geometry_by_id(&state.document, Object_Id(id), x, y, width, height)
 }
 
@@ -840,7 +843,7 @@ engine_undo :: proc() -> bool {
 	if state.interaction.mode != .Idle {
 		return false
 	}
-	
+
 	if !document_undo(&state.document) {
 		return false
 	}
@@ -854,7 +857,7 @@ engine_redo :: proc() -> bool {
 		return false
 	}
 
-	if !document_redo(&state.document)  {
+	if !document_redo(&state.document) {
 		return false
 	}
 

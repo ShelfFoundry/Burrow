@@ -372,6 +372,12 @@ export function Viewport(props: ViewportProps) {
           const canvas = canvasRef;
           if (!canvas) return;
 
+          // Commit any focused inspector field before the engine sees the click.
+          // The browser would only blur it after pointerdown, by which point the
+          // engine may have started a gesture or changed the selection.
+          const focused = document.activeElement;
+          if (focused instanceof HTMLElement && focused !== canvas) focused.blur();
+
           canvas.setPointerCapture(event.pointerId);
           const viewportEvent = toViewportPointerEvent("pointer_down", canvas, event);
           const creating = usesInterimCreation() && event.button === 0;
