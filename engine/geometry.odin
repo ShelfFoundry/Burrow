@@ -66,6 +66,11 @@ rect_union :: proc(a, b: Rect) -> Rect {
 	return Rect{x = x0, y = y0, width = x1 - x0, height = y1 - y0}
 }
 
+rect_from_snapped_points :: proc(a, b: Point) -> Rect {
+	start_point, end_point := snap_point(a), snap_point(b)
+	return rect_from_points(start_point, end_point)
+}
+
 rect_from_points :: proc(a, b: Point) -> Rect {
 	x0 := min_f32(a.x, b.x)
 	y0 := min_f32(a.y, b.y)
@@ -145,6 +150,10 @@ distance_point_to_segment :: proc(point, a, b: Point) -> f32 {
 	dy := point.y - closest.y
 
 	return length_f32(dx, dy)
+}
+
+snap_point :: proc(point: Point) -> Point {
+	return Point{x = math.round_f32(point.x), y = math.round_f32(point.y)}
 }
 
 snap_point_to_45_from_anchor :: proc(anchor, target: Point) -> Point {

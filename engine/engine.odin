@@ -296,7 +296,7 @@ engine_pointer_up_interaction :: proc() -> Interaction_Result {
 			kind = .None,
 		}
 	case .Creating_Rect:
-		rect := rect_from_points(previous_start_pointer_page, previous_last_pointer_page)
+		rect := rect_from_snapped_points(previous_start_pointer_page, previous_last_pointer_page)
 		if rect.width < MIN_RECT_SIZE || rect.height < MIN_RECT_SIZE {
 			state.last_interaction = Interaction_Result {
 				kind = .None,
@@ -517,7 +517,7 @@ engine_render_document :: proc() -> bool {
 	preview_obj: Maybe(Editor_Object)
 	#partial switch state.interaction.mode {
 	case .Creating_Rect:
-		rect := rect_from_points(
+		rect := rect_from_snapped_points(
 			state.interaction.start_pointer_page,
 			state.interaction.last_pointer_page,
 		)
