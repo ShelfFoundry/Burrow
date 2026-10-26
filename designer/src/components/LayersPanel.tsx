@@ -250,6 +250,10 @@ export function LayersPanel(props: LayersPanelProps) {
         aria-label="Layers"
         class="relative min-h-0 flex-1 overflow-y-auto px-3 pb-3"
       >
+        <Show when={props.layers.length === 0}>
+          <li role="none" class="px-2 py-1.5 text-[13px] text-fg-muted">No objects yet</li>
+        </Show>
+
         <For each={rows()}>
           {(row, rowIndex) => {
             const selected = () => props.selectedIds.includes(row.node.id);

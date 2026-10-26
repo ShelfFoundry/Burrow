@@ -70,10 +70,26 @@ Edit_Command :: struct {
 
 Edit_Action :: union {
 	Edit_Action_Translate,
+	Edit_Action_Add_Rect,
+	Edit_Action_Add_Line,
 }
 
 Edit_Action_Translate :: struct {
 	dx, dy: f32,
+}
+
+Edit_Action_Add_Rect :: struct {
+	id:                  Object_Id,
+	name_id:             i32,
+	x, y, width, height: f32,
+	fill:                RGBA,
+}
+
+Edit_Action_Add_Line :: struct {
+	id:             Object_Id,
+	name_id:        i32,
+	x1, y1, x2, y2: f32,
+	stroke:         Stroke_Style,
 }
 
 document_init_blank :: proc(document: ^Editor_Document, page_width, page_height: f32) {
@@ -85,16 +101,53 @@ document_init_blank :: proc(document: ^Editor_Document, page_width, page_height:
 }
 
 document_apply :: proc(document: ^Editor_Document, command: Edit_Command) -> bool {
+	ok := true
 	switch v in command.action {
 	case Edit_Action_Translate:
 		for i in 0 ..< command.count {
 			document_translate_object_by_id(document, command.targets[i], v.dx, v.dy)
 		}
+	case Edit_Action_Add_Rect:
+		ok = document_add_rect(document, v.id, v.name_id, v.x, v.y, v.width, v.height, v.fill)
+	case Edit_Action_Add_Line:
+		ok = document_add_line(document, v.id, v.name_id, v.x1, v.y1, v.x2, v.y2, v.stroke)
 	case nil:
-		return false
+		ok = false
 	}
-	document.revision += 1
-	return true
+	if ok {
+		document.revision += 1
+	}
+	return ok
+}
+
+document_add_line_auto_id :: proc(
+	document: ^Editor_Document,
+	name_id: i32,
+	x1, y1, x2, y2: f32,
+	stroke: Stroke_Style,
+) -> Object_Id {
+	id := Object_Id(document.next_object_id)
+
+	cmd := Edit_Command {
+		action = Edit_Action_Add_Line {
+			id = id,
+			name_id = name_id,
+			x1 = x1,
+			y1 = y1,
+			x2 = x2,
+			y2 = y2,
+			stroke = stroke,
+		},
+	}
+
+	ok := document_apply(document, cmd)
+
+	if !ok {
+		return Object_Id(0)
+	}
+
+	document.next_object_id += 1
+	return id
 }
 
 document_add_line :: proc(
@@ -121,15 +174,27 @@ document_add_line :: proc(
 	return true
 }
 
-document_add_line_auto_id :: proc(
+document_add_rect_auto_id :: proc(
 	document: ^Editor_Document,
 	name_id: i32,
-	x1, y1, x2, y2: f32,
-	stroke: Stroke_Style,
+	x, y, width, height: f32,
+	fill: RGBA,
 ) -> Object_Id {
 	id := Object_Id(document.next_object_id)
 
-	ok := document_add_line(document, id, name_id, x1, y1, x2, y2, stroke)
+	cmd := Edit_Command {
+		action = Edit_Action_Add_Rect {
+			id = id,
+			name_id = name_id,
+			x = x,
+			y = y,
+			width = width,
+			height = height,
+			fill = fill,
+		},
+	}
+
+	ok := document_apply(document, cmd)
 
 	if !ok {
 		return Object_Id(0)
@@ -139,15 +204,12 @@ document_add_line_auto_id :: proc(
 	return id
 }
 
-document_add_rect_full :: proc(
+document_add_rect :: proc(
 	document: ^Editor_Document,
 	id: Object_Id,
 	name_id: i32,
 	x, y, width, height: f32,
-	fill_enabled: bool,
 	fill: RGBA,
-	stroke_enabled: bool,
-	stroke: Stroke_Style,
 ) -> bool {
 	if document.object_count >= MAX_OBJECTS {
 		return false
@@ -164,37 +226,14 @@ document_add_rect_full :: proc(
 			y = y,
 			width = width,
 			height = height,
-			fill_enabled = fill_enabled,
+			fill_enabled = true,
 			fill = fill,
-			stroke_enabled = stroke_enabled,
-			stroke = stroke,
+			stroke_enabled = false,
 		},
 	}
 
 	document.object_count += 1
 	return true
-}
-
-document_add_rect :: proc(
-	document: ^Editor_Document,
-	id: Object_Id,
-	name_id: i32,
-	x, y, width, height: f32,
-	fill: RGBA,
-) -> bool {
-	return document_add_rect_full(
-		document,
-		id,
-		name_id,
-		x,
-		y,
-		width,
-		height,
-		true,
-		fill,
-		false,
-		Stroke_Style{},
-	)
 }
 
 document_object_count :: proc(document: ^Editor_Document) -> i32 {
@@ -212,57 +251,6 @@ document_page_height :: proc(document: ^Editor_Document) -> f32 {
 document_clear_objects :: proc(document: ^Editor_Document) {
 	document.object_count = 0
 	document.next_object_id = 1
-}
-
-document_add_rect_auto_id :: proc(
-	document: ^Editor_Document,
-	name_id: i32,
-	x, y, width, height: f32,
-	fill: RGBA,
-) -> Object_Id {
-	id := Object_Id(document.next_object_id)
-
-	ok := document_add_rect(document, id, name_id, x, y, width, height, fill)
-
-	if !ok {
-		return Object_Id(0)
-	}
-
-	document.next_object_id += 1
-	return id
-}
-
-document_add_rect_full_auto_id :: proc(
-	document: ^Editor_Document,
-	name_id: i32,
-	x, y, width, height: f32,
-	fill_enabled: bool,
-	fill: RGBA,
-	stroke_enabled: bool,
-	stroke: Stroke_Style,
-) -> Object_Id {
-	id := Object_Id(document.next_object_id)
-
-	ok := document_add_rect_full(
-		document,
-		id,
-		name_id,
-		x,
-		y,
-		width,
-		height,
-		fill_enabled,
-		fill,
-		stroke_enabled,
-		stroke,
-	)
-
-	if !ok {
-		return Object_Id(0)
-	}
-
-	document.next_object_id += 1
-	return id
 }
 
 document_get_object_by_index :: proc(document: ^Editor_Document, index: int) -> ^Editor_Object {

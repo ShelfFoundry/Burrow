@@ -15,6 +15,11 @@ export type DesignerWasmExports = {
     designer_page_width: () => number;
     designer_page_height: () => number;
     designer_object_count: () => number;
+    // Returns 0 if the index is out of range.
+    designer_object_id_at: (index: number) => number;
+    designer_document_revision: () => number;
+    // mode is a Selection_Mode ordinal. Returns 0 if the id or mode is unknown.
+    designer_select_object_by_id: (id: number, mode: number) => number;
 
     designer_zoom: () => number;
     designer_pan_x: () => number;
@@ -92,21 +97,6 @@ export type DesignerWasmExports = {
         g: number,
         b: number,
         a: number,
-    ) => number;
-    designer_add_full_rect: (
-        x: number,
-        y: number,
-        width: number,
-        height: number,
-        fill_r: number,
-        fill_g: number,
-        fill_b: number,
-        fill_a: number,
-        stroke_r: number,
-        stroke_g: number,
-        stroke_b: number,
-        stroke_a: number,
-        stroke_width: number,
     ) => number;
     designer_add_line: (
         x1: number,

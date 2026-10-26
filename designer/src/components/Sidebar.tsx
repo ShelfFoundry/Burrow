@@ -1,7 +1,7 @@
 import { createSignal, Show } from "solid-js";
 import type { SetStoreFunction } from "solid-js/store";
 import { ChevronDown, CopyPlus, Trash2 } from "lucide-solid";
-import { MOCK_LAYERS, MOCK_SELECTED_LAYERS, type LayerCommands } from "../layers/layers";
+import type { LayerCommands, LayerId, LayerNode } from "../layers/layers";
 import type { TemplateSettings } from "../template/settings";
 import { LayersPanel } from "./LayersPanel";
 import { LivePreview } from "./LivePreview";
@@ -11,6 +11,8 @@ type SidebarProps = {
   templateSettings: TemplateSettings;
   setTemplateSettings: SetStoreFunction<TemplateSettings>;
   previewVisible: boolean;
+  layers: LayerNode[];
+  selectedLayerIds: LayerId[];
   layerCommands: LayerCommands;
   onStatusChange: (message: string) => void;
 };
@@ -38,8 +40,8 @@ export function Sidebar(props: SidebarProps) {
         <h2 class="px-5 pt-4 pb-2 text-[15px] text-fg-strong">Layers</h2>
 
         <LayersPanel
-          layers={MOCK_LAYERS}
-          selectedIds={MOCK_SELECTED_LAYERS}
+          layers={props.layers}
+          selectedIds={props.selectedLayerIds}
           commands={props.layerCommands}
         />
       </div>

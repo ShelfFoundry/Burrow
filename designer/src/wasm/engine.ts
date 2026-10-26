@@ -38,6 +38,31 @@ export type DesignerPointerDebugState = {
 const OBJECT_KIND_RECT = 0;
 const OBJECT_KIND_LINE = 1;
 
+// NOTE: must match the order of Selection_Mode in engine/selection.odin
+const SELECTION_MODES = { replace: 0, toggle: 1 } as const;
+
+export type SelectionMode = keyof typeof SELECTION_MODES;
+
+export type DocumentObjectKind = "rect" | "line";
+
+// A document object as the layers panel lists it.
+export type DocumentObject = {
+    id: number;
+    kind: DocumentObjectKind;
+    name: string;
+};
+
+function objectKindFromOrdinal(kind: number): DocumentObjectKind | undefined {
+    if (kind === OBJECT_KIND_RECT) return "rect";
+    if (kind === OBJECT_KIND_LINE) return "line";
+    return undefined;
+}
+
+// Placeholder names until the engine stores real ones (name_id is temporary).
+function objectName(kind: DocumentObjectKind, nameId: number): string {
+    return `${kind === "rect" ? "Rect" : "Line"} ${nameId}`;
+}
+
 export type RectEditableProperty = "x" | "y" | "width" | "height";
 
 export type SelectedObjectSnapshot =
@@ -103,6 +128,9 @@ export type Engine = {
     };
 
     getObjectCount: () => number;
+    // In document order, back to front.
+    getObjects: () => DocumentObject[];
+    getDocumentRevision: () => number;
 
     // interact = false only updates the engine's pointer state, skipping
     // selection/move/resize, e.g. while a creation tool is active.
@@ -140,6 +168,7 @@ export type Engine = {
     selectionContains(id: number): boolean;
     getSelectionIds(): number[];
     getSelectedObjectSnapshot(): SelectedObjectSnapshot;
+    selectObjectById(id: number, mode: SelectionMode): boolean;
     setRectGeometry: (
         id: number,
         x: number,
@@ -157,15 +186,6 @@ export type Engine = {
         width: number,
         height: number,
         color: { r: number; g: number; b: number; a: number },
-    ) => number;
-    addFullRect: (
-        x: number,
-        y: number,
-        width: number,
-        height: number,
-        fillColor: { r: number; g: number; b: number; a: number },
-        strokeColor: { r: number; g: number; b: number; a: number },
-        strokeWidth: number,
     ) => number;
     addLine: (
         x1: number,
@@ -245,6 +265,25 @@ export async function createEngine(): Promise<Engine> {
 
     function getObjectCount(): number {
         return wasm.exports.designer_object_count();
+    }
+
+    function getObjects(): DocumentObject[] {
+        const count = wasm.exports.designer_object_count();
+        const objects: DocumentObject[] = [];
+
+        for (let i = 0; i < count; i += 1) {
+            const id = wasm.exports.designer_object_id_at(i);
+            const kind = objectKindFromOrdinal(wasm.exports.designer_object_kind(id));
+            if (id === 0 || !kind) continue;
+
+            objects.push({ id, kind, name: objectName(kind, wasm.exports.designer_object_name_id(id)) });
+        }
+
+        return objects;
+    }
+
+    function getDocumentRevision(): number {
+        return wasm.exports.designer_document_revision();
     }
 
     function pointerDown(
@@ -355,7 +394,7 @@ export async function createEngine(): Promise<Engine> {
             return {
                 kind: "rect",
                 id,
-                name: `Rect ${nameId}`,
+                name: objectName("rect", nameId),
                 x: wasm.exports.designer_object_rect_x(id),
                 y: wasm.exports.designer_object_rect_y(id),
                 width: wasm.exports.designer_object_rect_width(id),
@@ -367,7 +406,7 @@ export async function createEngine(): Promise<Engine> {
             return {
                 kind: "line",
                 id,
-                name: `Line ${nameId}`,
+                name: objectName("line", nameId),
                 x1: wasm.exports.designer_object_line_x1(id),
                 y1: wasm.exports.designer_object_line_y1(id),
                 x2: wasm.exports.designer_object_line_x2(id),
@@ -376,6 +415,10 @@ export async function createEngine(): Promise<Engine> {
         }
 
         return { kind: "none" };
+    }
+
+    function selectObjectById(id: number, mode: SelectionMode): boolean {
+        return wasm.exports.designer_select_object_by_id(id, SELECTION_MODES[mode]) !== 0;
     }
 
     function setRectGeometry(
@@ -456,32 +499,6 @@ export async function createEngine(): Promise<Engine> {
         );
     }
 
-    function addFullRect(
-        x: number,
-        y: number,
-        width: number,
-        height: number,
-        fillColor: { r: number; g: number; b: number; a: number },
-        strokeColor: { r: number; g: number; b: number; a: number },
-        strokeWidth: number,
-    ): number {
-        return wasm.exports.designer_add_full_rect(
-            x,
-            y,
-            width,
-            height,
-            fillColor.r,
-            fillColor.g,
-            fillColor.b,
-            fillColor.a,
-            strokeColor.r,
-            strokeColor.g,
-            strokeColor.b,
-            strokeColor.a,
-            strokeWidth,
-        );
-    }
-
     function getFirstObjectBounds() {
         return {
             x: wasm.exports.designer_debug_first_object_bounds_x(),
@@ -545,6 +562,8 @@ export async function createEngine(): Promise<Engine> {
         getViewportSize,
         getPageSize,
         getObjectCount,
+        getObjects,
+        getDocumentRevision,
         getTransform,
         pointerDown,
         pointerMove,
@@ -565,7 +584,6 @@ export async function createEngine(): Promise<Engine> {
         renderDocument,
         clearObjects,
         addRect,
-        addFullRect,
         addLine,
         getFirstObjectBounds,
         debugHitTestCurrentPointer,
@@ -576,6 +594,7 @@ export async function createEngine(): Promise<Engine> {
         selectionCount,
         getSelectionIds,
         getSelectedObjectSnapshot,
+        selectObjectById,
         setRectGeometry,
         debugInteractionHit,
     };

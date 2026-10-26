@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, onMount } from 'solid-js';
+import { createMemo, createSignal, onCleanup, onMount } from 'solid-js';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { Viewport, type ViewportController } from './components/Viewport';
@@ -6,7 +6,13 @@ import { Inspector } from './components/Inspector';
 import { ToolDock, type Tool } from './components/ToolDock';
 import { selectedObjectSnapshotsEqual, type SelectedObjectSnapshot } from './wasm/engine';
 import { createTemplateSettingsStore } from './template/settings';
-import { findLayer, MOCK_LAYERS, type LayerCommands, type LayerId } from './layers/layers';
+import {
+  findLayer,
+  layersFromObjects,
+  layerTreesEqual,
+  type LayerCommands,
+  type LayerId,
+} from './layers/layers';
 
 export default function App() {
   const [selectedObject, setSelectedObject] = createSignal<SelectedObjectSnapshot>(
@@ -16,20 +22,34 @@ export default function App() {
   const [templateSettings, setTemplateSettings] = createTemplateSettingsStore();
   const [status, setStatus] = createSignal("Ready");
   const [viewportController, setViewportController] = createSignal<ViewportController | undefined>();
-  const [_documentRevision, setDocumentRevision] = createSignal(0);
+  const [documentRevision, setDocumentRevision] = createSignal(0);
+  const [selectedIds, setSelectedIds] = createSignal<number[]>([], { equals: sameIds });
   const [zoom, setZoom] = createSignal(1);
   // The engine has no tool modes yet. Square and Line create objects through the
   // add exports (see Viewport); the other tools are UI state only.
   const [activeTool, setActiveTool] = createSignal<Tool>("select");
   const [previewVisible, setPreviewVisible] = createSignal(true);
 
-  const layerName = (id: LayerId | null) =>
-    id === null ? "top level" : `"${findLayer(MOCK_LAYERS, id)?.name ?? `#${id}`}"`;
+  // Re-read whenever the engine reports a new document revision.
+  const layers = createMemo(
+    () => {
+      documentRevision();
+      return layersFromObjects(viewportController()?.getObjects() ?? []);
+    },
+    [],
+    { equals: layerTreesEqual },
+  );
 
-  // Layer intents. Nothing applies them until the engine exposes layer exports.
+  const layerName = (id: LayerId | null) =>
+    id === null ? "top level" : `"${findLayer(layers(), id)?.name ?? `#${id}`}"`;
+
+  // Layer intents. Moving and grouping wait on engine exports.
   const layerCommands: LayerCommands = {
-    select: (id, mode) =>
-      setStatus(`Select ${layerName(id)} (${mode}) needs engine support`),
+    select: (id, mode) => {
+      if (!viewportController()?.selectObject(id, mode)) {
+        setStatus(`Could not select ${layerName(id)}`);
+      }
+    },
     move: (id, { parentId, index }) =>
       setStatus(`Move ${layerName(id)} into ${layerName(parentId)} at ${index} needs engine support`),
     group: (ids) =>
@@ -69,6 +89,8 @@ export default function App() {
           templateSettings={templateSettings}
           setTemplateSettings={setTemplateSettings}
           previewVisible={previewVisible()}
+          layers={layers()}
+          selectedLayerIds={selectedIds()}
           layerCommands={layerCommands}
           onStatusChange={setStatus}
         />
@@ -77,6 +99,7 @@ export default function App() {
           <Viewport
             onStatusChange={setStatus}
             onSelectedObjectChange={setSelectedObject}
+            onSelectionChange={setSelectedIds}
             onControllerReady={setViewportController}
             onDocumentRevisionChange={setDocumentRevision}
             onZoomChange={setZoom}
@@ -108,6 +131,10 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+function sameIds(a: number[], b: number[]): boolean {
+  return a.length === b.length && a.every((id, i) => id === b[i]);
 }
 
 function isEditingText(target: EventTarget | null): boolean {

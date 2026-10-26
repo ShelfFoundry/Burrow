@@ -524,28 +524,6 @@ engine_add_rect :: proc(x, y, width, height: f32, fill: RGBA) -> i32 {
 	return i32(id)
 }
 
-engine_add_full_rect :: proc(
-	x, y, width, height: f32,
-	fill: RGBA,
-	stroke: RGBA,
-	stroke_width: f32,
-) -> i32 {
-	id := document_add_rect_full_auto_id(
-		&state.document,
-		state.document.next_object_id,
-		x,
-		y,
-		width,
-		height,
-		fill_enabled = true,
-		fill = fill,
-		stroke_enabled = true,
-		stroke = Stroke_Style{color = stroke, width = stroke_width},
-	)
-
-	return i32(id)
-}
-
 engine_pointer_inside_selection_group_bounds :: proc() -> bool {
 	if state.selection.count <= 1 {
 		return false

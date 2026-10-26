@@ -36,23 +36,28 @@ export type LayerCommands = {
     group: (ids: LayerId[]) => void;
 };
 
-// MOCK: the engine doesn't expose a way to list document objects yet.
-export const MOCK_LAYERS: LayerNode[] = [
-    { id: 1, name: "{{NAME}}", kind: "text" },
-    { id: 2, name: "Rectangle 1", kind: "rect" },
-    {
-        id: 3,
-        name: "Group 1",
-        kind: "group",
-        children: [
-            { id: 4, name: "company-logo.jpg", kind: "image" },
-            { id: 5, name: "{{BARCODE}}", kind: "text" },
-        ],
-    },
-    { id: 6, name: "Line 1", kind: "line" },
-];
+// The engine has no groups yet, so every object is a top-level layer. Documents
+// list objects back to front; the panel shows them front to back.
+export function layersFromObjects(objects: { id: number; kind: LayerKind; name: string }[]): LayerNode[] {
+    return objects.map(({ id, kind, name }) => ({ id, kind, name })).reverse();
+}
 
-export const MOCK_SELECTED_LAYERS: LayerId[] = [1];
+// Equal if the panel would draw the same rows. Lets the layer list skip
+// revisions that only moved objects around the canvas.
+export function layerTreesEqual(a: LayerNode[], b: LayerNode[]): boolean {
+    return (
+        a.length === b.length &&
+        a.every((node, i) => {
+            const other = b[i];
+            return (
+                node.id === other.id &&
+                node.kind === other.kind &&
+                node.name === other.name &&
+                layerTreesEqual(node.children ?? [], other.children ?? [])
+            );
+        })
+    );
+}
 
 export function findLayer(nodes: LayerNode[], id: LayerId): LayerNode | undefined {
     for (const node of nodes) {

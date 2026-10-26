@@ -3,9 +3,11 @@ import {
   createEngine,
   waitForDesignerGpuReady,
   resizeCanvasToDisplaySize,
+  type DocumentObject,
   type Engine,
   type RectEditableProperty,
   type SelectedObjectSnapshot,
+  type SelectionMode,
   type ViewportPointerEventKind,
 } from "../wasm/engine";
 import { createOdinRenderLoop, type OdinRenderLoop } from "../wasm/loop";
@@ -22,11 +24,14 @@ export type ViewportController = {
     value: number,
   ) => boolean;
   getSelectionIds: () => number[];
+  getObjects: () => DocumentObject[];
+  selectObject: (id: number, mode: SelectionMode) => boolean;
 };
 
 type ViewportProps = {
   onStatusChange: (message: string) => void;
   onSelectedObjectChange?: (snapshot: SelectedObjectSnapshot) => void;
+  onSelectionChange?: (ids: number[]) => void;
   onControllerReady?: (controller: ViewportController) => void;
   onDocumentRevisionChange?: (revision: number) => void;
   onZoomChange?: (zoom: number) => void;
@@ -41,6 +46,9 @@ export function Viewport(props: ViewportProps) {
   let odinLoop: OdinRenderLoop | undefined;
   let handleResize: EventListener | undefined;
   const DEBUG: boolean = window.location.search.includes("debug") || false;
+
+  // Last document revision passed to onDocumentRevisionChange.
+  let publishedRevision: number | undefined;
 
   // Page-space point where the current line drag started.
   let lineStart: { x: number; y: number } | undefined;
@@ -102,9 +110,13 @@ export function Viewport(props: ViewportProps) {
 
     odinLoop.start();
 
+    publishEngineState();
+
     props.onControllerReady?.({
       setSelectionRectProperty,
       getSelectionIds: () => engine?.getSelectionIds() ?? [],
+      getObjects: () => engine?.getObjects() ?? [],
+      selectObject,
     });
   }
 
@@ -144,9 +156,30 @@ export function Viewport(props: ViewportProps) {
     props.onObjectCreated?.();
   }
 
-  function publishSelectedObject() {
+  // Pushes the engine's selection and document revision out to the app. Call it after
+  // anything that might have changed either.
+  function publishEngineState() {
     if (!engine) return;
     props.onSelectedObjectChange?.(engine.getSelectedObjectSnapshot());
+    props.onSelectionChange?.(engine.getSelectionIds());
+
+    const revision = engine.getDocumentRevision();
+    if (revision !== publishedRevision) {
+      publishedRevision = revision;
+      props.onDocumentRevisionChange?.(revision);
+    }
+  }
+
+  function selectObject(id: number, mode: SelectionMode): boolean {
+    if (!engine) return false;
+
+    const ok = engine.selectObjectById(id, mode);
+    if (ok) {
+      odinLoop?.requestRender();
+      publishEngineState();
+    }
+
+    return ok;
   }
 
   function setSelectionRectProperty(property: RectEditableProperty, value: number): boolean {
@@ -160,7 +193,7 @@ export function Viewport(props: ViewportProps) {
 
     if (ok) {
       odinLoop?.requestRender();
-      publishSelectedObject();
+      publishEngineState();
     }
 
     return ok;
@@ -327,7 +360,7 @@ export function Viewport(props: ViewportProps) {
           }
 
           odinLoop?.requestRender();
-          publishSelectedObject();
+          publishEngineState();
         }}
         onPointerMove={(event) => {
           const canvas = canvasRef;
@@ -343,7 +376,7 @@ export function Viewport(props: ViewportProps) {
             !(creatingGesture || isCreating()),
           );
           odinLoop?.requestRender();
-          publishSelectedObject();
+          publishEngineState();
         }}
         onPointerUp={(event) => {
           const canvas = canvasRef;
@@ -366,7 +399,7 @@ export function Viewport(props: ViewportProps) {
           if (creating) createOnPointerUp();
 
           odinLoop?.requestRender();
-          publishSelectedObject();
+          publishEngineState();
 
           if (canvas.hasPointerCapture(event.pointerId)) {
             canvas.releasePointerCapture(event.pointerId);
@@ -378,7 +411,7 @@ export function Viewport(props: ViewportProps) {
           lineStart = undefined;
           creatingGesture = false;
           engine?.pointerCancel();
-          publishSelectedObject();
+          publishEngineState();
           if (canvas.hasPointerCapture(event.pointerId)) {
             canvas.releasePointerCapture(event.pointerId);
           }
