@@ -23,6 +23,13 @@ const ENGINE_TOOL_FOR: Partial<Record<Tool, EngineTool>> = {
   line: "line",
 };
 
+declare global {
+  interface Window {
+    // Set only with ?debug in the URL, for poking the engine from the console or a CDP test.
+    burrowEngine?: Engine;
+  }
+}
+
 // Defaults for objects drawn with the dock's creation tools.
 const NEW_OBJECT_COLOR = { r: 0, g: 0, b: 0, a: 1 };
 const NEW_LINE_WIDTH = 2;
@@ -35,6 +42,9 @@ export type ViewportController = {
   getSelectionIds: () => number[];
   getObjects: () => DocumentObject[];
   selectObject: (id: number, mode: SelectionMode) => boolean;
+  // Abandons an in-progress drag, putting everything back. Returns false if nothing was
+  // in progress.
+  cancelInteraction: () => boolean;
 };
 
 type ViewportProps = {
@@ -78,6 +88,7 @@ export function Viewport(props: ViewportProps) {
     }
 
     engine.init(canvas.width, canvas.height);
+    if (DEBUG) window.burrowEngine = engine;
     await waitForDesignerGpuReady(engine);
     engine?.configureGpuSurface(canvas.width, canvas.height);
 
@@ -120,7 +131,23 @@ export function Viewport(props: ViewportProps) {
       getSelectionIds: () => engine?.getSelectionIds() ?? [],
       getObjects: () => engine?.getObjects() ?? [],
       selectObject,
+      cancelInteraction,
     });
+  }
+
+  function cancelInteraction(): boolean {
+    if (!engine) return false;
+
+    // The interim line drag lives in JS, so it's cancelled here rather than in the engine.
+    const hadLine = lineStart !== undefined;
+    lineStart = undefined;
+
+    const cancelled = engine.cancelInteraction() || hadLine;
+    if (cancelled) {
+      odinLoop?.requestRender();
+      publishEngineState();
+    }
+    return cancelled;
   }
 
   function syncTool() {

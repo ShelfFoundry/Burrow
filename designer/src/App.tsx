@@ -56,12 +56,19 @@ export default function App() {
       setStatus(`Group ${ids.length} ${ids.length === 1 ? "layer" : "layers"} needs engine support`),
   };
 
-  // Ctrl/Cmd+G groups the selection, like Figma. Escape leaves a creation tool.
+  // Ctrl/Cmd+G groups the selection, like Figma. Escape cancels a drag in progress, or
+  // otherwise leaves a creation tool.
   onMount(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && activeTool() !== "select" && !isEditingText(event.target)) {
-        setActiveTool("select");
-        return;
+      if (event.key === "Escape" && !isEditingText(event.target)) {
+        if (viewportController()?.cancelInteraction()) {
+          event.preventDefault();
+          return;
+        }
+        if (activeTool() !== "select") {
+          setActiveTool("select");
+          return;
+        }
       }
 
       const isGroup =

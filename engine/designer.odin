@@ -493,4 +493,12 @@ designer_last_interaction_object_id :: proc() -> i32 {
 	return i32(engine_last_interaction_object_id())
 }
 
+@(export)
+designer_cancel_interaction :: proc() -> i32 {
+	if engine_cancel_interaction() {
+		return 1
+	}
+	return 0
+}
+
 main :: proc() {}

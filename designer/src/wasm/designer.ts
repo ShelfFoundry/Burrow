@@ -66,6 +66,9 @@ export type DesignerWasmExports = {
     designer_pointer_up_interaction: () => number;
     // The object the last interaction acted on, or 0 if none.
     designer_last_interaction_object_id: () => number;
+    // Cancels the active gesture, restoring what it changed. Returns 1 if a gesture was
+    // cancelled, 0 if none was active.
+    designer_cancel_interaction: () => number;
 
     designer_clear_selection: () => void;
     designer_selection_count: () => number;

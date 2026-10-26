@@ -63,19 +63,19 @@ Editor_Document :: struct {
 }
 
 Edit_Command :: struct {
-	action:  Edit_Action,
-	targets: [MAX_SELECTED_OBJECTS]Object_Id,
-	count:   int,
+	action: Edit_Action,
 }
 
 Edit_Action :: union {
-	Edit_Action_Translate,
+	Edit_Action_Set_Objects,
 	Edit_Action_Add_Rect,
 	Edit_Action_Add_Line,
 }
 
-Edit_Action_Translate :: struct {
-	dx, dy: f32,
+Edit_Action_Set_Objects :: struct {
+	count:  int,
+	before: [MAX_SELECTED_OBJECTS]Editor_Object,
+	after:  [MAX_SELECTED_OBJECTS]Editor_Object,
 }
 
 Edit_Action_Add_Rect :: struct {
@@ -103,9 +103,14 @@ document_init_blank :: proc(document: ^Editor_Document, page_width, page_height:
 document_apply :: proc(document: ^Editor_Document, command: Edit_Command) -> bool {
 	ok := true
 	switch v in command.action {
-	case Edit_Action_Translate:
-		for i in 0 ..< command.count {
-			document_translate_object_by_id(document, command.targets[i], v.dx, v.dy)
+	case Edit_Action_Set_Objects:
+		for i in 0 ..< v.count {
+			object := document_get_object_by_id(document, v.after[i].id)
+			if object == nil {
+				ok = false
+				continue
+			}
+			object^ = v.after[i]
 		}
 	case Edit_Action_Add_Rect:
 		ok = document_add_rect(document, v.id, v.name_id, v.x, v.y, v.width, v.height, v.fill)
@@ -301,23 +306,3 @@ document_translate_object_by_id :: proc(
 	return true
 }
 
-document_translate_selection :: proc(
-	document: ^Editor_Document,
-	selection: ^Selection_State,
-	dx, dy: f32,
-) {
-	if document == nil || selection == nil || selection.count == 0 {
-		return
-	}
-
-	cmd := Edit_Command {
-		action = Edit_Action_Translate{dx = dx, dy = dy},
-	}
-
-	for i in 0 ..< selection.count {
-		cmd.targets[i] = selection.ids[i]
-		cmd.count += 1
-	}
-
-	document_apply(document, cmd)
-}

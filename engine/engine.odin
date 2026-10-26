@@ -222,6 +222,7 @@ engine_start_move_interaction :: proc(active_object_id: Object_Id) {
 	state.interaction.mode = .Moving_Selection
 	state.interaction.active_object_id = active_object_id
 	engine_set_interaction_pointer_start()
+	drag_snapshot_capture(&state.interaction.snapshot, &state.document, &state.selection)
 }
 
 engine_pointer_move_interaction :: proc() -> Interaction_Result {
@@ -235,11 +236,10 @@ engine_pointer_move_interaction :: proc() -> Interaction_Result {
 		return state.last_interaction
 	case .Moving_Selection:
 		current := engine_current_page_pointer()
-		dx := current.x - state.interaction.last_pointer_page.x
-		dy := current.y - state.interaction.last_pointer_page.y
-		if dx != 0.0 || dy != 0.0 {
-			document_translate_selection(&state.document, &state.selection, dx, dy)
-		}
+		dx := current.x - state.interaction.start_pointer_page.x
+		dy := current.y - state.interaction.start_pointer_page.y
+
+		drag_snapshot_apply_translate(&state.interaction.snapshot, &state.document, dx, dy)
 
 		engine_set_interaction_pointer_last()
 
@@ -286,6 +286,11 @@ engine_pointer_up_interaction :: proc() -> Interaction_Result {
 	previous_resize_handle := state.interaction.resize_handle
 	previous_start_pointer_page := state.interaction.start_pointer_page
 	previous_last_pointer_page := state.interaction.last_pointer_page
+
+	#partial switch previous_mode {
+	case .Moving_Selection, .Resize_Handle, .Line_Handle:
+		engine_commit_drag()
+	}
 
 	engine_clear_interaction()
 
@@ -387,6 +392,51 @@ engine_pointer_up :: proc(x, y: f32, button, buttons: i32, modifiers: i32) {
 
 engine_pointer_cancel :: proc() {
 	pointer_cancel(&state.pointer)
+	engine_cancel_interaction()
+}
+
+engine_cancel_interaction :: proc() -> bool {
+	if state.interaction.mode == .Idle {
+		return false
+	}
+	drag_snapshot_restore(&state.interaction.snapshot, &state.document)
+	engine_clear_interaction()
+
+	state.last_interaction = Interaction_Result {
+		kind = .None,
+	}
+	return true
+}
+
+engine_commit_drag :: proc() -> bool {
+	snapshot := &state.interaction.snapshot
+	if snapshot.count == 0 {
+		return false
+	}
+
+	action := Edit_Action_Set_Objects {
+		count = snapshot.count,
+	}
+	changed := false
+
+	for i in 0 ..< snapshot.count {
+		before := snapshot.objects[i]
+		object := document_get_object_by_id(&state.document, before.id)
+		if object == nil {
+			return false
+		}
+
+		action.before[i] = before
+		action.after[i] = object^
+		if object^ != before {
+			changed = true
+		}
+	}
+
+	if !changed {
+		return false
+	}
+	return document_apply(&state.document, Edit_Command{action = action})
 }
 
 engine_pointer_leave :: proc() {

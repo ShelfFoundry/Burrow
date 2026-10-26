@@ -179,6 +179,8 @@ export type Engine = {
         interact?: boolean,
     ) => InteractionResultKind | undefined;
     getLastInteractionObjectId: () => number;
+    // Returns true if a gesture was active and has been cancelled.
+    cancelInteraction: () => boolean;
     pointerCancel: () => void;
     pointerLeave: () => void;
     pointerModifiers: (event: PointerEvent) => number;
@@ -350,6 +352,10 @@ export async function createEngine(): Promise<Engine> {
 
     function getLastInteractionObjectId(): number {
         return wasm.exports.designer_last_interaction_object_id();
+    }
+
+    function cancelInteraction(): boolean {
+        return wasm.exports.designer_cancel_interaction() !== 0;
     }
 
     function pointerCancel(): void {
@@ -608,6 +614,7 @@ export async function createEngine(): Promise<Engine> {
         pointerMove,
         pointerUp,
         getLastInteractionObjectId,
+        cancelInteraction,
         pointerCancel,
         pointerLeave,
         pointerModifiers,

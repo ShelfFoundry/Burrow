@@ -26,6 +26,7 @@ engine_start_line_handle_interaction :: proc(active_object_id: Object_Id, handle
 	state.interaction.line_handle = handle
 	state.interaction.active_object_id = active_object_id
 	engine_set_interaction_pointer_start()
+	drag_snapshot_capture(&state.interaction.snapshot, &state.document, &state.selection)
 }
 
 engine_start_resize_interaction :: proc(active_object_id: Object_Id, handle: Resize_Handle) {
@@ -34,190 +35,41 @@ engine_start_resize_interaction :: proc(active_object_id: Object_Id, handle: Res
 	state.interaction.resize_handle = handle
 	state.interaction.active_object_id = active_object_id
 	engine_set_interaction_pointer_start()
-
-	if active_object_id == Object_Id(0) {
-		engine_capture_group_resize_snapshot()
-	}
-
-	object := document_get_object_by_id(&state.document, active_object_id)
-
-	if object != nil && object.kind == .Rect {
-		state.interaction.start_rect = object.rect
-		state.interaction.has_start_rect = true
-	}
+	drag_snapshot_capture(&state.interaction.snapshot, &state.document, &state.selection)
 }
 
 engine_drag_resize_handle_by_current_pointer :: proc() -> bool {
-	if state.interaction.mode != .Resize_Handle {
+	if state.interaction.mode != .Resize_Handle || state.interaction.resize_handle == .None {
 		return false
 	}
 
-	if state.interaction.active_object_id == Object_Id(0) {
-		current := engine_current_page_pointer()
+	snapshot := &state.interaction.snapshot
 
-		total_dx := current.x - state.interaction.start_pointer_page.x
-		total_dy := current.y - state.interaction.start_pointer_page.y
-
-		new_bounds: Rect
-
-		if engine_shift_down() && resize_handle_is_corner(state.interaction.resize_handle) {
-			new_bounds = resize_bounds_from_handle_aspect(
-				state.interaction.group_resize.start_bounds,
-				state.interaction.resize_handle,
-				total_dx,
-				total_dy,
-				MIN_RECT_SIZE,
-			)
-		} else {
-			new_bounds = resize_bounds_from_handle(
-				state.interaction.group_resize.start_bounds,
-				state.interaction.resize_handle,
-				total_dx,
-				total_dy,
-				MIN_RECT_SIZE,
-			)
-		}
-
-		ok := engine_apply_group_resize_snapshot(new_bounds)
-
-		if !ok {
-			return false
-		}
-
-		engine_set_interaction_pointer_last()
-
-		return true
-
-	}
-
-	if state.interaction.resize_handle == .None {
+	if snapshot.count == 0 {
 		return false
-	}
-
-	if state.interaction.active_object_id != Object_Id(0) &&
-	   engine_shift_down() &&
-	   resize_handle_is_corner(state.interaction.resize_handle) &&
-	   state.interaction.has_start_rect {
-
-		current := engine_current_page_pointer()
-		total_dx := current.x - state.interaction.start_pointer_page.x
-		total_dy := current.y - state.interaction.start_pointer_page.y
-
-		new_rect := rect_resize_from_handle_aspect(
-			state.interaction.start_rect,
-			state.interaction.resize_handle,
-			total_dx,
-			total_dy,
-			MIN_RECT_SIZE,
-		)
-
-		ok := document_set_rect_by_id(
-			&state.document,
-			state.interaction.active_object_id,
-			new_rect,
-		)
-
-		if !ok {
-			return false
-		}
-
-		engine_set_interaction_pointer_last()
-		return true
 	}
 
 	current := engine_current_page_pointer()
-	dx := current.x - state.interaction.last_pointer_page.x
-	dy := current.y - state.interaction.last_pointer_page.y
+	dx := current.x - state.interaction.start_pointer_page.x
+	dy := current.y - state.interaction.start_pointer_page.y
+	handle := state.interaction.resize_handle
 
-	if dx == 0.0 && dy == 0.0 {
-		return true
+	new_bounds: Rect
+
+	if engine_shift_down() && resize_handle_is_corner(handle) {
+		new_bounds = resize_bounds_from_handle_aspect(
+			snapshot.bounds,
+			handle,
+			dx,
+			dy,
+			MIN_RECT_SIZE,
+		)
+	} else {
+		new_bounds = resize_bounds_from_handle(snapshot.bounds, handle, dx, dy, MIN_RECT_SIZE)
 	}
 
-	ok := document_resize_rect_by_id(
-		&state.document,
-		state.interaction.active_object_id,
-		state.interaction.resize_handle,
-		dx,
-		dy,
-	)
-
-	if !ok {
-		return false
-	}
-
+	drag_snapshot_apply_resize(snapshot, &state.document, new_bounds)
 	engine_set_interaction_pointer_last()
-	return true
-}
-
-engine_capture_group_resize_snapshot :: proc() -> bool {
-	if state.selection.count <= 1 {
-		return false
-	}
-
-	bounds, ok := selection_bounds(&state.document, &state.selection)
-
-	if !ok {
-		return false
-	}
-
-	state.interaction.group_resize = Group_Resize_State{}
-	state.interaction.group_resize.active = true
-	state.interaction.group_resize.start_bounds = bounds
-	state.interaction.group_resize.current_bounds = bounds
-
-	for i in 0 ..< state.selection.count {
-		if state.interaction.group_resize.count >= MAX_RESIZE_SNAPSHOT_OBJECTS {
-			break
-		}
-
-		id := state.selection.ids[i]
-		object := document_get_object_by_id(&state.document, id)
-
-		if object == nil {
-			continue
-		}
-
-		index := state.interaction.group_resize.count
-
-		state.interaction.group_resize.objects[index] = Resize_Object_Snapshot {
-			id   = object.id,
-			kind = object.kind,
-			rect = object.rect,
-			line = object.line,
-		}
-
-		state.interaction.group_resize.count += 1
-	}
-
-	return state.interaction.group_resize.count > 0
-}
-
-engine_apply_group_resize_snapshot :: proc(new_bounds: Rect) -> bool {
-	group := &state.interaction.group_resize
-
-	if !group.active {
-		return false
-	}
-
-	from := group.start_bounds
-	to := new_bounds
-
-	for i in 0 ..< group.count {
-		snapshot := group.objects[i]
-		object := document_get_object_by_id(&state.document, snapshot.id)
-
-		if object == nil {
-			continue
-		}
-
-		if snapshot.kind == .Rect && object.kind == .Rect {
-			object.rect = apply_group_resize_to_rect(snapshot.rect, from, to)
-		} else if snapshot.kind == .Line && object.kind == .Line {
-			object.line = apply_group_resize_to_line(snapshot.line, from, to)
-		}
-	}
-
-	group.current_bounds = new_bounds
 	return true
 }
 
@@ -294,7 +146,7 @@ map_point_between_rects :: proc(point: Point, from: Rect, to: Rect) -> Point {
 	return Point{x = to.x + (point.x - from.x) * sx, y = to.y + (point.y - from.y) * sy}
 }
 
-apply_group_resize_to_rect :: proc(rect: Rect_Object, from: Rect, to: Rect) -> Rect_Object {
+rect_object_map_bounds :: proc(rect: Rect_Object, from: Rect, to: Rect) -> Rect_Object {
 	p0 := map_point_between_rects(Point{x = rect.x, y = rect.y}, from, to)
 
 	p1 := map_point_between_rects(
@@ -320,7 +172,7 @@ apply_group_resize_to_rect :: proc(rect: Rect_Object, from: Rect, to: Rect) -> R
 	return result
 }
 
-apply_group_resize_to_line :: proc(line: Line_Object, from: Rect, to: Rect) -> Line_Object {
+line_object_map_bounds :: proc(line: Line_Object, from: Rect, to: Rect) -> Line_Object {
 	p1 := map_point_between_rects(Point{x = line.x1, y = line.y1}, from, to)
 
 	p2 := map_point_between_rects(Point{x = line.x2, y = line.y2}, from, to)
@@ -441,109 +293,4 @@ resize_bounds_from_handle_aspect :: proc(
 	}
 
 	return resize_bounds_from_handle(start, handle, total_dx, total_dy, min_size)
-}
-
-rect_resize_from_handle_aspect :: proc(
-	start: Rect_Object,
-	handle: Resize_Handle,
-	total_dx, total_dy: f32,
-	min_size: f32,
-) -> Rect_Object {
-	result := start
-
-	if start.width <= 0.0 || start.height <= 0.0 {
-		return result
-	}
-
-	aspect := start.width / start.height
-
-	left := start.x
-	top := start.y
-	right := start.x + start.width
-	bottom := start.y + start.height
-
-	free_width := start.width
-	free_height := start.height
-
-	if handle == .SE {
-		free_width = max_f32(min_size, start.width + total_dx)
-		free_height = max_f32(min_size, start.height + total_dy)
-
-		width_from_height := free_height * aspect
-		height_from_width := free_width / aspect
-
-		if abs_f32(free_width - start.width) >= abs_f32(free_height - start.height) {
-			result.width = free_width
-			result.height = height_from_width
-		} else {
-			result.width = width_from_height
-			result.height = free_height
-		}
-
-		result.x = left
-		result.y = top
-		return result
-	}
-
-	if handle == .NE {
-		free_width = max_f32(min_size, start.width + total_dx)
-		free_height = max_f32(min_size, start.height - total_dy)
-
-		width_from_height := free_height * aspect
-		height_from_width := free_width / aspect
-
-		if abs_f32(free_width - start.width) >= abs_f32(free_height - start.height) {
-			result.width = free_width
-			result.height = height_from_width
-		} else {
-			result.width = width_from_height
-			result.height = free_height
-		}
-
-		result.x = left
-		result.y = bottom - result.height
-		return result
-	}
-
-	if handle == .SW {
-		free_width = max_f32(min_size, start.width - total_dx)
-		free_height = max_f32(min_size, start.height + total_dy)
-
-		width_from_height := free_height * aspect
-		height_from_width := free_width / aspect
-
-		if abs_f32(free_width - start.width) >= abs_f32(free_height - start.height) {
-			result.width = free_width
-			result.height = height_from_width
-		} else {
-			result.width = width_from_height
-			result.height = free_height
-		}
-
-		result.x = right - result.width
-		result.y = top
-		return result
-	}
-
-	if handle == .NW {
-		free_width = max_f32(min_size, start.width - total_dx)
-		free_height = max_f32(min_size, start.height - total_dy)
-
-		width_from_height := free_height * aspect
-		height_from_width := free_width / aspect
-
-		if abs_f32(free_width - start.width) >= abs_f32(free_height - start.height) {
-			result.width = free_width
-			result.height = height_from_width
-		} else {
-			result.width = width_from_height
-			result.height = free_height
-		}
-
-		result.x = right - result.width
-		result.y = bottom - result.height
-		return result
-	}
-
-	return result
 }
