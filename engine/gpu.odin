@@ -410,6 +410,7 @@ gpu_render_document :: proc(
 	selection: ^Selection_State,
 	transform: Viewport_Transform,
 	viewport_width, viewport_height: f32,
+	preview_obj: Maybe(Editor_Object),
 ) -> bool {
 	if !gpu_is_ready_to_render(gpu) {
 		return false
@@ -469,6 +470,23 @@ gpu_render_document :: proc(
 			ok = true
 		}
 
+		if !ok {
+			return false
+		}
+	}
+
+	if preview_obj, exists := preview_obj.?; exists {
+		#partial switch preview_obj.kind {
+		case .Rect:
+			ok = gpu_push_rect_object_vertices(
+				raw_data(vertices[:]),
+				&vertex_count,
+				preview_obj,
+				transform,
+				viewport_width,
+				viewport_height,
+			)
+		}
 		if !ok {
 			return false
 		}

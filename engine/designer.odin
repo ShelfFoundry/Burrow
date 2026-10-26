@@ -473,4 +473,24 @@ designer_document_revision :: proc() -> i32 {
 	return engine_document_revision()
 }
 
+@(export)
+designer_set_tool :: proc(tool: i32) -> i32 {
+	tool := Tool(tool)
+	if tool < min(Tool) || tool > max(Tool) {
+		return 0
+	}
+	engine_set_tool(tool)
+	return 1
+}
+
+@(export)
+designer_tool :: proc() -> i32 {
+	return i32(engine_tool())
+}
+
+@(export)
+designer_last_interaction_object_id :: proc() -> i32 {
+	return i32(engine_last_interaction_object_id())
+}
+
 main :: proc() {}

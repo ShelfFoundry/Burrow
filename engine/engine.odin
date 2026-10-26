@@ -12,9 +12,17 @@ Engine_State :: struct {
 	selection:        Selection_State,
 	interaction:      Interaction_State,
 	last_interaction: Interaction_Result,
+	active_tool:      Tool,
 }
 
 state: Engine_State
+
+Tool :: enum {
+	Select,
+	Rect,
+	Line,
+	Pan,
+}
 
 engine_init :: proc(width: i32, height: i32) {
 	state.initialized = true
@@ -105,6 +113,18 @@ engine_recompute_viewport_transform :: proc() {
 }
 
 engine_pointer_down_interaction :: proc() -> Interaction_Result {
+	if state.active_tool == .Rect {
+		engine_clear_interaction()
+		selection_clear(&state.selection)
+		state.interaction.mode = Interaction_Mode.Creating_Rect
+		engine_set_interaction_pointer_start()
+
+		state.last_interaction = Interaction_Result {
+			kind = .Creating_Rect,
+		}
+		return state.last_interaction
+	}
+
 	// 1. Handles win.
 	hit := engine_hit_test_interaction_at_current_pointer()
 
@@ -205,7 +225,23 @@ engine_start_move_interaction :: proc(active_object_id: Object_Id) {
 }
 
 engine_pointer_move_interaction :: proc() -> Interaction_Result {
-	if state.interaction.mode == .Moving_Selection {
+	switch state.interaction.mode {
+	case .Creating_Rect:
+		current := Point {
+			x = state.pointer.page_x,
+			y = state.pointer.page_y,
+		}
+		state.interaction.last_pointer_page = current
+		state.interaction.last_pointer_screen = Point {
+			x = state.pointer.x,
+			y = state.pointer.y,
+		}
+		state.last_interaction = Interaction_Result {
+			kind = .Creating_Rect,
+		}
+	case .Creating_Line:
+		return state.last_interaction
+	case .Moving_Selection:
 		current := Point {
 			x = state.pointer.page_x,
 			y = state.pointer.page_y,
@@ -228,11 +264,7 @@ engine_pointer_move_interaction :: proc() -> Interaction_Result {
 			kind      = .Move_Selection,
 			object_id = state.interaction.active_object_id,
 		}
-
-		return state.last_interaction
-	}
-
-	if state.interaction.mode == .Resize_Handle {
+	case .Resize_Handle:
 		ok := engine_drag_resize_handle_by_current_pointer()
 
 		state.last_interaction = Interaction_Result {
@@ -244,11 +276,7 @@ engine_pointer_move_interaction :: proc() -> Interaction_Result {
 		if !ok {
 			state.last_interaction.kind = .None
 		}
-
-		return state.last_interaction
-	}
-
-	if state.interaction.mode == .Line_Handle {
+	case .Line_Handle:
 		ok := engine_drag_line_handle_to_current_pointer()
 
 		state.last_interaction = Interaction_Result {
@@ -260,12 +288,10 @@ engine_pointer_move_interaction :: proc() -> Interaction_Result {
 		if !ok {
 			state.last_interaction.kind = .None
 		}
-
-		return state.last_interaction
-	}
-
-	state.last_interaction = Interaction_Result {
-		kind = .None,
+	case .Idle:
+		state.last_interaction = Interaction_Result {
+			kind = .None,
+		}
 	}
 	return state.last_interaction
 }
@@ -275,8 +301,42 @@ engine_pointer_up_interaction :: proc() -> Interaction_Result {
 	previous_object_id := state.interaction.active_object_id
 	previous_line_handle := state.interaction.line_handle
 	previous_resize_handle := state.interaction.resize_handle
+	previous_start_pointer_page := state.interaction.start_pointer_page
+	previous_last_pointer_page := state.interaction.last_pointer_page
 
 	engine_clear_interaction()
+
+	if previous_mode == .Creating_Rect {
+		rect := rect_from_points(previous_start_pointer_page, previous_last_pointer_page)
+		if rect.width < MIN_RECT_SIZE || rect.height < MIN_RECT_SIZE {
+			state.last_interaction = Interaction_Result {
+				kind = .None,
+			}
+			return state.last_interaction
+		}
+		id := document_add_rect_auto_id(
+			&state.document,
+			state.document.next_object_id,
+			rect.x,
+			rect.y,
+			rect.width,
+			rect.height,
+			RGBA{0.0, 0.0, 0.0, 1.0},
+		)
+		if id == Object_Id(0) {
+			state.last_interaction = Interaction_Result {
+				kind = .Document_Full,
+			}
+			return state.last_interaction
+		}
+		state.last_interaction = Interaction_Result {
+			kind      = .Object_Created,
+			object_id = id,
+		}
+		selection_replace(&state.selection, id)
+		engine_set_tool(.Select)
+		return state.last_interaction
+	}
 
 	if previous_mode == .Moving_Selection {
 		state.last_interaction = Interaction_Result {
@@ -483,6 +543,26 @@ engine_gpu_is_initialized :: proc() -> bool {
 }
 
 engine_render_document :: proc() -> bool {
+	preview_obj: Maybe(Editor_Object)
+	#partial switch state.interaction.mode {
+	case .Creating_Rect:
+		rect := rect_from_points(
+			state.interaction.start_pointer_page,
+			state.interaction.last_pointer_page,
+		)
+		preview_obj = Editor_Object {
+			kind = .Rect,
+			rect = Rect_Object {
+				x = rect.x,
+				y = rect.y,
+				width = rect.width,
+				height = rect.height,
+				fill_enabled = true,
+				fill = RGBA{0.0, 0.0, 0.0, 1.0},
+			},
+		}
+	}
+
 	return gpu_render_document(
 		&state.gpu,
 		&state.document,
@@ -490,6 +570,7 @@ engine_render_document :: proc() -> bool {
 		state.transform,
 		f32(state.viewport_width),
 		f32(state.viewport_height),
+		preview_obj,
 	)
 }
 
@@ -724,4 +805,16 @@ engine_multi_select_modifier_down :: proc() -> bool {
 
 engine_shift_down :: proc() -> bool {
 	return .Shift in state.pointer.modifiers
+}
+
+engine_set_tool :: proc(tool: Tool) {
+	state.active_tool = tool
+}
+
+engine_tool :: proc() -> Tool {
+	return state.active_tool
+}
+
+engine_last_interaction_object_id :: proc() -> Object_Id {
+	return state.last_interaction.object_id
 }

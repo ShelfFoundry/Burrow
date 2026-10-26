@@ -20,6 +20,9 @@ export type DesignerWasmExports = {
     designer_document_revision: () => number;
     // mode is a Selection_Mode ordinal. Returns 0 if the id or mode is unknown.
     designer_select_object_by_id: (id: number, mode: number) => number;
+    // tool is a Tool ordinal. Returns 0 if it's unknown.
+    designer_set_tool: (tool: number) => number;
+    designer_tool: () => number;
 
     designer_zoom: () => number;
     designer_pan_x: () => number;
@@ -61,6 +64,8 @@ export type DesignerWasmExports = {
     designer_pointer_down_interaction: () => number;
     designer_pointer_move_interaction: () => number;
     designer_pointer_up_interaction: () => number;
+    // The object the last interaction acted on, or 0 if none.
+    designer_last_interaction_object_id: () => number;
 
     designer_clear_selection: () => void;
     designer_selection_count: () => number;

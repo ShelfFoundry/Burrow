@@ -43,6 +43,11 @@ const SELECTION_MODES = { replace: 0, toggle: 1 } as const;
 
 export type SelectionMode = keyof typeof SELECTION_MODES;
 
+// NOTE: must match the order of Tool in engine/engine.odin
+const ENGINE_TOOLS = ["select", "rect", "line", "pan"] as const;
+
+export type EngineTool = (typeof ENGINE_TOOLS)[number];
+
 export type DocumentObjectKind = "rect" | "line";
 
 // A document object as the layers panel lists it.
@@ -62,6 +67,21 @@ function objectKindFromOrdinal(kind: number): DocumentObjectKind | undefined {
 function objectName(kind: DocumentObjectKind, nameId: number): string {
     return `${kind === "rect" ? "Rect" : "Line"} ${nameId}`;
 }
+
+// NOTE: must match the order of Interaction_Result_Kind in engine/interaction.odin
+const INTERACTION_RESULT_KINDS = [
+    "none",
+    "selection_changed",
+    "resize_handle",
+    "line_handle",
+    "move_selection",
+    "creating_rect",
+    "creating_line",
+    "object_created",
+    "document_full",
+] as const;
+
+export type InteractionResultKind = (typeof INTERACTION_RESULT_KINDS)[number];
 
 export type RectEditableProperty = "x" | "y" | "width" | "height";
 
@@ -133,7 +153,8 @@ export type Engine = {
     getDocumentRevision: () => number;
 
     // interact = false only updates the engine's pointer state, skipping
-    // selection/move/resize, e.g. while a creation tool is active.
+    // selection/move/resize, e.g. during an interim JS-side creation. Each returns
+    // the interaction's result kind, or undefined when interact is false.
     pointerDown: (
         x: number,
         y: number,
@@ -141,14 +162,14 @@ export type Engine = {
         buttons: number,
         modifiers: number,
         interact?: boolean,
-    ) => void;
+    ) => InteractionResultKind | undefined;
     pointerMove: (
         x: number,
         y: number,
         buttons: number,
         modifiers: number,
         interact?: boolean,
-    ) => void;
+    ) => InteractionResultKind | undefined;
     pointerUp: (
         x: number,
         y: number,
@@ -156,7 +177,8 @@ export type Engine = {
         buttons: number,
         modifiers: number,
         interact?: boolean,
-    ) => void;
+    ) => InteractionResultKind | undefined;
+    getLastInteractionObjectId: () => number;
     pointerCancel: () => void;
     pointerLeave: () => void;
     pointerModifiers: (event: PointerEvent) => number;
@@ -169,6 +191,8 @@ export type Engine = {
     getSelectionIds(): number[];
     getSelectedObjectSnapshot(): SelectedObjectSnapshot;
     selectObjectById(id: number, mode: SelectionMode): boolean;
+    setTool(tool: EngineTool): boolean;
+    getTool(): EngineTool | undefined;
     setRectGeometry: (
         id: number,
         x: number,
@@ -293,9 +317,10 @@ export async function createEngine(): Promise<Engine> {
         buttons: number,
         modifiers: number,
         interact = true,
-    ): void {
+    ): InteractionResultKind | undefined {
         wasm.exports.designer_pointer_down(x, y, button, buttons, modifiers);
-        if (interact) wasm.exports.designer_pointer_down_interaction();
+        if (!interact) return undefined;
+        return INTERACTION_RESULT_KINDS[wasm.exports.designer_pointer_down_interaction()];
     }
 
     function pointerMove(
@@ -304,9 +329,10 @@ export async function createEngine(): Promise<Engine> {
         buttons: number,
         modifiers: number,
         interact = true,
-    ): void {
+    ): InteractionResultKind | undefined {
         wasm.exports.designer_pointer_move(x, y, buttons, modifiers);
-        if (interact) wasm.exports.designer_pointer_move_interaction();
+        if (!interact) return undefined;
+        return INTERACTION_RESULT_KINDS[wasm.exports.designer_pointer_move_interaction()];
     }
 
     function pointerUp(
@@ -316,9 +342,14 @@ export async function createEngine(): Promise<Engine> {
         buttons: number,
         modifiers: number,
         interact = true,
-    ): void {
+    ): InteractionResultKind | undefined {
         wasm.exports.designer_pointer_up(x, y, button, buttons, modifiers);
-        if (interact) wasm.exports.designer_pointer_up_interaction();
+        if (!interact) return undefined;
+        return INTERACTION_RESULT_KINDS[wasm.exports.designer_pointer_up_interaction()];
+    }
+
+    function getLastInteractionObjectId(): number {
+        return wasm.exports.designer_last_interaction_object_id();
     }
 
     function pointerCancel(): void {
@@ -419,6 +450,14 @@ export async function createEngine(): Promise<Engine> {
 
     function selectObjectById(id: number, mode: SelectionMode): boolean {
         return wasm.exports.designer_select_object_by_id(id, SELECTION_MODES[mode]) !== 0;
+    }
+
+    function setTool(tool: EngineTool): boolean {
+        return wasm.exports.designer_set_tool(ENGINE_TOOLS.indexOf(tool)) !== 0;
+    }
+
+    function getTool(): EngineTool | undefined {
+        return ENGINE_TOOLS[wasm.exports.designer_tool()];
     }
 
     function setRectGeometry(
@@ -568,6 +607,7 @@ export async function createEngine(): Promise<Engine> {
         pointerDown,
         pointerMove,
         pointerUp,
+        getLastInteractionObjectId,
         pointerCancel,
         pointerLeave,
         pointerModifiers,
@@ -595,6 +635,8 @@ export async function createEngine(): Promise<Engine> {
         getSelectionIds,
         getSelectedObjectSnapshot,
         selectObjectById,
+        setTool,
+        getTool,
         setRectGeometry,
         debugInteractionHit,
     };

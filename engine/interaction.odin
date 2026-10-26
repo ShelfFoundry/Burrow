@@ -8,6 +8,8 @@ Interaction_Mode :: enum {
 	Moving_Selection,
 	Resize_Handle,
 	Line_Handle,
+	Creating_Rect,
+	Creating_Line,
 }
 
 Interaction_State :: struct {
@@ -30,6 +32,10 @@ Interaction_Result_Kind :: enum {
 	Resize_Handle,
 	Line_Handle,
 	Move_Selection,
+	Creating_Rect,
+	Creating_Line,
+	Object_Created,
+	Document_Full,
 }
 
 Interaction_Result :: struct {

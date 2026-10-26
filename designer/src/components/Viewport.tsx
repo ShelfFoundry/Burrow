@@ -1,10 +1,11 @@
-import { onCleanup, onMount } from "solid-js";
+import { createEffect, onCleanup, onMount } from "solid-js";
 import {
   createEngine,
   waitForDesignerGpuReady,
   resizeCanvasToDisplaySize,
   type DocumentObject,
   type Engine,
+  type EngineTool,
   type RectEditableProperty,
   type SelectedObjectSnapshot,
   type SelectionMode,
@@ -13,9 +14,17 @@ import {
 import { createOdinRenderLoop, type OdinRenderLoop } from "../wasm/loop";
 import type { Tool } from "./ToolDock";
 
+// The dock's tools that the engine knows about. Picking any other tool leaves the
+// engine on Select.
+const ENGINE_TOOL_FOR: Partial<Record<Tool, EngineTool>> = {
+  select: "select",
+  hand: "pan",
+  square: "rect",
+  line: "line",
+};
+
 // Defaults for objects drawn with the dock's creation tools.
 const NEW_OBJECT_COLOR = { r: 0, g: 0, b: 0, a: 1 };
-const NEW_SQUARE_SIZE = 100;
 const NEW_LINE_WIDTH = 2;
 
 export type ViewportController = {
@@ -52,12 +61,15 @@ export function Viewport(props: ViewportProps) {
 
   // Page-space point where the current line drag started.
   let lineStart: { x: number; y: number } | undefined;
-  // Whether the current press started with a creation tool. Square switches back to
-  // Select on press, so the rest of the gesture must not reach the engine's interaction.
+  // Whether the current press started an interim (JS-side) creation, so the rest of the
+  // gesture skips the engine's interaction even if the tool changes mid-drag.
   let creatingGesture = false;
 
   // While Square or Line is active, the canvas creates objects instead of selecting them.
   const isCreating = () => props.activeTool === "square" || props.activeTool === "line";
+  // Square goes through the engine's creation interaction. Line still uses the interim
+  // JS placement below until the engine has a Creating_Line path.
+  const usesInterimCreation = () => props.activeTool === "line";
 
   async function startOdinRenderer(canvas: HTMLCanvasElement) {
     engine = await createEngine();
@@ -68,16 +80,6 @@ export function Viewport(props: ViewportProps) {
     engine.init(canvas.width, canvas.height);
     await waitForDesignerGpuReady(engine);
     engine?.configureGpuSurface(canvas.width, canvas.height);
-
-    engine.addRect(
-      50, 50, 100, 100,
-      { r: 1, g: 0, b: 0, a: 1 }
-    );
-    engine.addLine(
-      0, 0, 50, 50,
-      { r: 0, g: 1, b: 0, a: 1 },
-      4
-    );
 
     handleResize = () => {
       const resized = resizeCanvasToDisplaySize(canvas);
@@ -110,6 +112,7 @@ export function Viewport(props: ViewportProps) {
 
     odinLoop.start();
 
+    syncTool();
     publishEngineState();
 
     props.onControllerReady?.({
@@ -120,17 +123,19 @@ export function Viewport(props: ViewportProps) {
     });
   }
 
-  // Square: a click places a default-sized square with its top-left at the pointer.
+  function syncTool() {
+    const tool = ENGINE_TOOL_FOR[props.activeTool] ?? "select";
+    if (engine && !engine.setTool(tool)) {
+      props.onStatusChange(`The engine rejected the ${tool} tool`);
+    }
+  }
+
+  createEffect(syncTool);
+
   // Line: a drag draws a line from the press point to the release point.
   function createOnPointerDown() {
     if (!engine) return;
-    const point = engine.getPointerPagePosition();
-
-    if (props.activeTool === "square") {
-      finishCreation(engine.addRect(point.x, point.y, NEW_SQUARE_SIZE, NEW_SQUARE_SIZE, NEW_OBJECT_COLOR), "Rect");
-    } else if (props.activeTool === "line") {
-      lineStart = point;
-    }
+    lineStart = engine.getPointerPagePosition();
   }
 
   function createOnPointerUp() {
@@ -152,7 +157,8 @@ export function Viewport(props: ViewportProps) {
       return;
     }
 
-    props.onStatusChange(`Added ${kind} ${id}`);
+    const name = engine?.getObjects().find((object) => object.id === id)?.name ?? `${kind} ${id}`;
+    props.onStatusChange(`Added ${name}`);
     props.onObjectCreated?.();
   }
 
@@ -340,7 +346,7 @@ export function Viewport(props: ViewportProps) {
 
           canvas.setPointerCapture(event.pointerId);
           const viewportEvent = toViewportPointerEvent("pointer_down", canvas, event);
-          const creating = isCreating() && event.button === 0;
+          const creating = usesInterimCreation() && event.button === 0;
           creatingGesture = creating;
 
           engine?.pointerDown(
@@ -373,7 +379,7 @@ export function Viewport(props: ViewportProps) {
             viewportEvent.y,
             viewportEvent.buttons,
             engine.pointerModifiers(event),
-            !(creatingGesture || isCreating()),
+            !(creatingGesture || usesInterimCreation()),
           );
           odinLoop?.requestRender();
           publishEngineState();
@@ -387,7 +393,7 @@ export function Viewport(props: ViewportProps) {
           const creating = creatingGesture;
           creatingGesture = false;
 
-          engine?.pointerUp(
+          const result = engine?.pointerUp(
             viewportEvent.x,
             viewportEvent.y,
             viewportEvent.button,
@@ -397,6 +403,11 @@ export function Viewport(props: ViewportProps) {
           );
 
           if (creating) createOnPointerUp();
+          if (result === "object_created" && engine) {
+            finishCreation(engine.getLastInteractionObjectId(), "Object");
+          } else if (result === "document_full") {
+            finishCreation(0, "Object");
+          }
 
           odinLoop?.requestRender();
           publishEngineState();
