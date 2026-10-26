@@ -153,11 +153,6 @@ designer_pointer_inside :: proc() -> i32 {
 }
 
 @(export)
-designer_update_selection_from_current_pointer :: proc() -> i32 {
-	return engine_update_selection_from_current_pointer()
-}
-
-@(export)
 designer_selection_count :: proc() -> i32 {
 	return i32(state.selection.count)
 }

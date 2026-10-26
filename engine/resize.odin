@@ -21,20 +21,16 @@ engine_set_interaction_pointer_last :: proc() {
 }
 
 engine_start_line_handle_interaction :: proc(active_object_id: Object_Id, handle: Line_Handle) {
-	state.interaction = Interaction_State{}
-	state.interaction.mode = .Line_Handle
+	engine_begin_interaction(.Line_Handle)
 	state.interaction.line_handle = handle
 	state.interaction.active_object_id = active_object_id
-	engine_set_interaction_pointer_start()
 	drag_snapshot_capture(&state.interaction.snapshot, &state.document, &state.selection)
 }
 
 engine_start_resize_interaction :: proc(active_object_id: Object_Id, handle: Resize_Handle) {
-	state.interaction = Interaction_State{}
-	state.interaction.mode = .Resize_Handle
+	engine_begin_interaction(.Resize_Handle)
 	state.interaction.resize_handle = handle
 	state.interaction.active_object_id = active_object_id
-	engine_set_interaction_pointer_start()
 	drag_snapshot_capture(&state.interaction.snapshot, &state.document, &state.selection)
 }
 

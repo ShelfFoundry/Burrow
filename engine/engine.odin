@@ -113,115 +113,42 @@ engine_recompute_viewport_transform :: proc() {
 }
 
 engine_pointer_down_interaction :: proc() -> Interaction_Result {
-	if state.active_tool == .Rect {
-		engine_clear_interaction()
-		selection_clear(&state.selection)
-		state.interaction.mode = Interaction_Mode.Creating_Rect
-		engine_set_interaction_pointer_start()
+	// NOTE: never start a gesture on top of another live one
+	// it would leave its uncommitted preview in the document
+	engine_cancel_interaction()
 
-		state.last_interaction = Interaction_Result {
-			kind = .Creating_Rect,
+	result: Interaction_Result
+
+	switch state.active_tool {
+	case .Select:
+		result = select_tool_pointer_down()
+	case .Rect:
+		result = rect_tool_pointer_down()
+	case .Line:
+		// TODO: refactor line creation
+		result = Interaction_Result {
+			kind = .None,
 		}
-		return state.last_interaction
+	case .Pan:
+		// TODO: add pan later
+		result = Interaction_Result {
+			kind = .None,
+		}
 	}
 
-	// 1. Handles win.
-	hit := engine_hit_test_interaction_at_current_pointer()
+	state.last_interaction = result
+	return result
+}
 
-	if hit.kind == .Resize_Handle {
-		engine_start_resize_interaction(hit.object_id, hit.resize_handle)
-
-		state.last_interaction = Interaction_Result {
-			kind          = .Resize_Handle,
-			object_id     = hit.object_id,
-			resize_handle = hit.resize_handle,
-		}
-
-		return state.last_interaction
-	}
-
-	if hit.kind == .Line_Handle {
-		engine_start_line_handle_interaction(hit.object_id, hit.line_handle)
-
-		state.last_interaction = Interaction_Result {
-			kind        = .Line_Handle,
-			object_id   = hit.object_id,
-			line_handle = hit.line_handle,
-		}
-
-		return state.last_interaction
-	}
-
-	object_hit := engine_hit_test_current_pointer()
-	multi_select := engine_multi_select_modifier_down()
-
-	// 2. Modifier-click toggles selection and does not start moving.
-	if multi_select {
-		if object_hit.kind == .Object {
-			selection_toggle(&state.selection, object_hit.object_id)
-
-			state.last_interaction = Interaction_Result {
-				kind      = .Selection_Changed,
-				object_id = object_hit.object_id,
-			}
-
-			return state.last_interaction
-		}
-
-		// Modifier-click empty preserves selection.
-		state.last_interaction = Interaction_Result {
-			kind      = .Selection_Changed,
-			object_id = Object_Id(0),
-		}
-
-		return state.last_interaction
-	}
-
-	// 3. Multi-selection group bounds click starts group move.
-	if engine_pointer_inside_selection_group_bounds() {
-		engine_start_move_interaction(Object_Id(0))
-
-		state.last_interaction = Interaction_Result {
-			kind      = .Move_Selection,
-			object_id = Object_Id(0),
-		}
-
-		return state.last_interaction
-	}
-
-	// 4. Object hit: select if needed, then move.
-	if object_hit.kind == .Object {
-		if !selection_contains(&state.selection, object_hit.object_id) {
-			selection_replace(&state.selection, object_hit.object_id)
-		}
-
-		engine_start_move_interaction(object_hit.object_id)
-
-		state.last_interaction = Interaction_Result {
-			kind      = .Move_Selection,
-			object_id = object_hit.object_id,
-		}
-
-		return state.last_interaction
-	}
-
-	// 5. Empty plain click clears.
-	selection_clear(&state.selection)
-	engine_clear_interaction()
-
-	state.last_interaction = Interaction_Result {
-		kind      = .Selection_Changed,
-		object_id = Object_Id(0),
-	}
-
-	return state.last_interaction
+engine_begin_interaction :: proc(mode: Interaction_Mode) {
+	state.interaction = Interaction_State{}
+	state.interaction.mode = mode
+	engine_set_interaction_pointer_start()
 }
 
 engine_start_move_interaction :: proc(active_object_id: Object_Id) {
-	state.interaction = Interaction_State{}
-	state.interaction.mode = .Moving_Selection
+	engine_begin_interaction(.Moving_Selection)
 	state.interaction.active_object_id = active_object_id
-	engine_set_interaction_pointer_start()
 	drag_snapshot_capture(&state.interaction.snapshot, &state.document, &state.selection)
 }
 
@@ -280,79 +207,41 @@ engine_pointer_move_interaction :: proc() -> Interaction_Result {
 }
 
 engine_pointer_up_interaction :: proc() -> Interaction_Result {
-	previous_mode := state.interaction.mode
-	previous_object_id := state.interaction.active_object_id
-	previous_line_handle := state.interaction.line_handle
-	previous_resize_handle := state.interaction.resize_handle
-	previous_start_pointer_page := state.interaction.start_pointer_page
-	previous_last_pointer_page := state.interaction.last_pointer_page
+	interaction := &state.interaction
+	result := Interaction_Result {
+		kind = .None,
+	}
 
-	#partial switch previous_mode {
-	case .Moving_Selection, .Resize_Handle, .Line_Handle:
+	switch interaction.mode {
+	case .Moving_Selection:
 		engine_commit_drag()
+		result = Interaction_Result {
+			kind      = .Move_Selection,
+			object_id = interaction.active_object_id,
+		}
+	case .Resize_Handle:
+		engine_commit_drag()
+		result = Interaction_Result {
+			kind          = .Resize_Handle,
+			object_id     = interaction.active_object_id,
+			resize_handle = interaction.resize_handle,
+		}
+	case .Line_Handle:
+		engine_commit_drag()
+		result = Interaction_Result {
+			kind        = .Line_Handle,
+			object_id   = interaction.active_object_id,
+			line_handle = interaction.line_handle,
+		}
+	case .Creating_Rect:
+		result = rect_tool_commit(interaction)
+	case .Creating_Line:
+	case .Idle:
 	}
 
 	engine_clear_interaction()
-
-	switch previous_mode {
-	case .Creating_Line:
-		// TODO: replace once creating lines is finished
-		state.last_interaction = Interaction_Result {
-			kind = .None,
-		}
-	case .Creating_Rect:
-		rect := rect_from_snapped_points(previous_start_pointer_page, previous_last_pointer_page)
-		if rect.width < MIN_RECT_SIZE || rect.height < MIN_RECT_SIZE {
-			state.last_interaction = Interaction_Result {
-				kind = .None,
-			}
-			return state.last_interaction
-		}
-		id := document_add_rect_auto_id(
-			&state.document,
-			state.document.next_object_id,
-			rect.x,
-			rect.y,
-			rect.width,
-			rect.height,
-			RGBA{0.0, 0.0, 0.0, 1.0},
-		)
-		if id == Object_Id(0) {
-			state.last_interaction = Interaction_Result {
-				kind = .Document_Full,
-			}
-		} else {
-			state.last_interaction = Interaction_Result {
-				kind      = .Object_Created,
-				object_id = id,
-			}
-			selection_replace(&state.selection, id)
-			engine_set_tool(.Select)
-		}
-	case .Moving_Selection:
-		state.last_interaction = Interaction_Result {
-			kind      = .Move_Selection,
-			object_id = previous_object_id,
-		}
-	case .Line_Handle:
-		state.last_interaction = Interaction_Result {
-			kind        = .Line_Handle,
-			object_id   = previous_object_id,
-			line_handle = previous_line_handle,
-		}
-	case .Resize_Handle:
-		state.last_interaction = Interaction_Result {
-			kind          = .Resize_Handle,
-			object_id     = previous_object_id,
-			resize_handle = previous_resize_handle,
-		}
-	case .Idle:
-		state.last_interaction = Interaction_Result {
-			kind = .None,
-		}
-	}
-
-	return state.last_interaction
+	state.last_interaction = result
+	return result
 }
 
 engine_pointer_down :: proc(x, y: f32, button, buttons: i32, modifiers: i32) {
@@ -639,30 +528,6 @@ engine_pointer_inside_selection_group_bounds :: proc() -> bool {
 
 	point := engine_current_page_pointer()
 	return point_in_rect(point, bounds)
-}
-
-engine_update_selection_from_current_pointer :: proc() -> i32 {
-	hit := engine_hit_test_current_pointer()
-
-	shift_down := .Shift in state.pointer.modifiers
-
-	if shift_down {
-		if hit.kind == .Object {
-			selection_toggle(&state.selection, hit.object_id)
-			return i32(hit.object_id)
-		}
-
-		// Ctrl-click empty space preserves selection.
-		return 0
-	}
-
-	if hit.kind == .Object {
-		selection_replace(&state.selection, hit.object_id)
-		return i32(hit.object_id)
-	}
-
-	selection_clear(&state.selection)
-	return 0
 }
 
 engine_select_object_by_id :: proc(id: Object_Id, mode: Selection_Mode) -> bool {
