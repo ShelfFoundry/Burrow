@@ -63,6 +63,9 @@ drag_snapshot_apply_translate :: proc(
 	document: ^Editor_Document,
 	dx, dy: f32,
 ) {
+	origin := snap_point(Point{x = snapshot.bounds.x + dx, y = snapshot.bounds.y + dy})
+	snapped_dx := origin.x - snapshot.bounds.x
+	snapped_dy := origin.y - snapshot.bounds.y
 	for i in 0 ..< snapshot.count {
 		saved := snapshot.objects[i]
 		object := document_get_object_by_id(document, saved.id)
@@ -70,7 +73,6 @@ drag_snapshot_apply_translate :: proc(
 			continue
 		}
 		object^ = saved
-		object_translate(object, dx, dy)
-		object_snap_to_pixels(object)
+		object_translate(object, snapped_dx, snapped_dy)
 	}
 }

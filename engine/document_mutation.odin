@@ -47,6 +47,5 @@ document_set_rect_geometry_by_id :: proc(
 	after.rect.width = max(width, MIN_RECT_SIZE)
 	after.rect.height = max(height, MIN_RECT_SIZE)
 
-	object_snap_to_pixels(&after)
 	return document_set_object(document, after)
 }
